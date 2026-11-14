@@ -1,3 +1,148 @@
+# Arcade Machine — V26
+
+## Correção validada: virar, bater no muro e soltar depois
+A V25 limpava o ângulo na batida, mas também desarmava a recuperação da trajetória. Se o jogador continuasse virando por mais alguns instantes após o contato, uma nova inclinação surgia e permanecia quando a direção era solta.
+
+O contato com a parede agora deixa a recuperação preparada. Ela aguarda a direção voltar ao neutro e o impacto terminar, então elimina suavemente o desvio restante. O jogador mantém prioridade enquanto segura a direção. Não há centralização da posição nem condução automática das curvas.
+
+Validação: teste reproduziu a falha antes da mudança e passou depois. Matriz com todos os carros, velocidades iniciais de 15/35/55 m/s, teclado e toque, paredes esquerda/direita, seis durações de direção mantida após a batida e com/sem drift. Após soltar, foram verificados ângulo residual e deslocamento lateral persistente. Também houve teste dos eventos A/D, Shift, campo de arraste e botão móvel de drift em DOM simulado. Falta validar a apresentação e os controles em navegador real/GPU e celular físico, indisponíveis neste ambiente.
+
+O ZIP contém index.html e render.yaml na raiz; progresso e demais jogos foram preservados.
+
+## Histórico V25
+
+# Arcade Machine — V25
+
+## Correção da direção após o drift
+O problema não era apenas o giro: a trajetória permanecia inclinada depois que o volante e a derrapagem já tinham voltado ao neutro. A saída do drift agora elimina suavemente essa inclinação residual ao soltar a direção. Se a direção continuar pressionada, o ajuste aguarda; se o jogador voltar a dirigir durante a recuperação, o comando tem prioridade.
+
+O contato com a parede também não deixa mais um ângulo fixo apontando para o lado oposto: o carro recebe um recuo lateral curto, que desaparece. O botão R limpa os estados de recuperação ao reposicionar.
+
+A posição lateral não é centralizada. A rotação do referencial da pista continua sendo aplicada, então o jogador ainda precisa conduzir as curvas. Os NPCs e o Take Down não receberam alterações nesta versão.
+
+Verificação: testes para os dois lados, teclado e toque, ausência de deslocamento persistente dez segundos após o drift, liberação tardia da direção, curvas manuais, paredes, colisões, oito circuitos e integração de A/D, Shift e clique do mouse. Interface testada em DOM simulado; falta conferir em navegador real/GPU e celular físico.
+
+O ZIP contém index.html e render.yaml na raiz para uso offline ou hospedagem no Render.
+
+## Histórico V24
+
+# Arcade Machine — V24
+
+## Pilotagem e combustível
+- A inércia foi reduzida novamente, sem reset instantâneo da velocidade. A diferença entre velocidades continua: no teste a 15 km, 30/70/130/238 m/s produziram cerca de 0,75/1,53/2,42/3,53 s de subida restante.
+- Galões menores em abastecimento: padrão 18% da capacidade + 2 L; grande 29% + 4 L; XL 40% + 5 L. A redução fica em torno de 25% na maior parte dos tanques. Tamanhos, cores e altitudes dos modelos continuam iguais.
+- Cada marco de altitude repõe **20% da capacidade máxima**, uma vez por voo, respeitando o limite do tanque. Descer e subir novamente pelo mesmo marco não repete a reposição. Conquistas e bônus em dinheiro continuam únicos por campanha.
+- Colisões físicas causam 20% mais dano, mantendo armadura, escudo e invulnerabilidade breve. Raios e limites do mapa também receberam pequeno aumento de dano.
+
+## Novos encontros
+- Passarinho redesenhado: voo horizontal, oscilação de altura e asas animadas. Atingi-lo espalha 44 penas claras e escuras que giram, flutuam e desaparecem; o pássaro foge sem repetir a colisão.
+- Observatório orbital: novo satélite com quatro painéis, antena e telescópio, encontrado a partir de 18 km. Estrutura sólida e destroços persistentes após impacto.
+- Nave-mãe alienígena: nave grande com ponte, janelas, motores e luzes animadas; surge a partir de 32 km, com intervalo entre aparições. Move-se lentamente e tem colisão física.
+- Uma relíquia rara acima de 20 km faz referência ao Arcade Zone. Encontrá-la desbloqueia uma conquista com pequena recompensa única. Não é necessária para terminar a missão.
+
+## Compatibilidade e verificação
+Progresso, modelos e mapas salvos são mantidos. Pássaros antigos passam a voar ao retomar; novos estados e encontros são salvos. O ZIP mantém index.html e render.yaml na raiz.
+
+Testes: inércia, tamanhos e combustível dos galões, reposição sem repetição dos marcos, colisões dos novos objetos, dano, voo e penas, relíquia e recompensa única, salvamento, desenhos e animações em Canvas CPU e interface em DOM simulado. O piloto externo de teste concluiu a campanha em 16 lançamentos. Falta verificar em navegador real/GPU e celular físico.
+
+## Histórico V23
+
+# Arcade Machine — V23
+
+Ajuste leve na pilotagem do Take Down: um amortecimento suave encurta a subida restante após o corte, mantendo a diferença entre velocidades. A força lateral aumentou 15%, com um pouco menos de resistência horizontal e limite lateral ligeiramente maior. A aceleração vertical permanece igual.
+
+Na comparação de calibração, a subida após o corte ficou aproximadamente 6–17% mais curta nas velocidades testadas; o deslocamento lateral no primeiro segundo melhorou cerca de 15%. Movimento contínuo, sem parada instantânea.
+
+Galões, mapas, checkpoints, final e progresso salvo foram preservados. O ZIP mantém index.html e render.yaml na raiz.
+
+Verificação: comparação numérica de deslocamento e inércia, testes de física, pane elétrica, galões e sequência final, além do pacote offline em DOM simulado. Falta verificar a sensação dos controles em navegador real e celular físico.
+
+## Histórico V22
+
+# Arcade Machine — V22
+
+## Velocidade, inércia e galões maiores
+- Desligar o motor remove apenas o empuxo. Foi retirado o freio artificial proporcional à velocidade. A velocidade atual, a gravidade constante do jogo e a resistência do ar determinam o tempo e a altura até o ponto mais alto. Não há reset da velocidade ao cortar o motor.
+- Exemplo de teste, a 15 km: ao cortar com 30, 70, 130 e 238 m/s, o foguete continuou subindo por cerca de 0,83; 1,93; 3,52 e 6,05 segundos. A subida restante foi aproximadamente 12, 67, 224 e 685 m. Esses valores variam com a altitude e a resistência do ar.
+- Galão padrão abaixo de 12 km: 23% da capacidade do tanque + 3 L.
+- Galão grande (G), a partir de 12 km: 38% + 5 L; modelo maior, amarelo e reforçado.
+- Galão extra grande (XL), a partir de 28 km: 52% + 7 L; modelo ainda maior, azul e reforçado.
+- O tanque nunca ultrapassa sua capacidade. A coleta informa os litros realmente recebidos; se já estiver cheio, mostra TANQUE CHEIO. Cada galão conta como uma coleta nas conquistas, independentemente do tamanho.
+- A chance de suprimentos continua diminuindo com a altitude. Galões maiores não aumentam a frequência dos materiais. A posição e o espaçamento continuam aleatórios por lançamento.
+- O tamanho de cada galão é preservado no salvamento, mesmo se ele for deslocado pelo coletor. Galões de voos salvos antigos recebem a classificação da altitude em que estavam, mantendo a posição e o restante do mapa.
+
+## Abrir e hospedar
+Extraia e abra index.html. O ZIP mantém render.yaml na raiz para hospedar no Render por New → Blueprint. A campanha atual é preservada.
+
+Verificação: tempos e distâncias de subida em quatro velocidades, três tamanhos de galão em três níveis de tanque, limite de capacidade, coleta única, limites de altitude, raridade, geração e salvamento. Desenhos e indicadores foram verificados em Canvas CPU em tela de computador e celular; interface e pacote offline usaram DOM simulado. Um piloto externo de teste concluiu a campanha em 18 lançamentos. Falta conferir em navegador real/GPU e celular físico.
+
+## Histórico V21
+
+# Arcade Machine — V21
+
+## Take Down: a última subida
+- Objetivo: alcance **48 km**. A interceptação passa a ser automática: não é preciso colidir com um objeto do mapa.
+- O final tem 42 segundos e sete planos: subida orbital, Pelicano no observatório, visão do solo, queima final, impacto visto da Terra, reação do cientista e Terra salva. Legendas maiores, transições, trilha sintetizada original, silêncio antes do impacto e efeitos sincronizados.
+- A cena respeita pausa, áudio, música e voz; fecha/retoma pelo checkpoint salvo e só paga a vitória ao terminar. Nenhum combustível é consumido durante a sequência. No resultado, um plano final estático mostra uma única Terra.
+- A Terra recebeu contornos de continentes, atmosfera, nuvens e iluminação. A janela redonda do prólogo recorta corretamente o céu e o brilho do asteroide.
+
+## Controle e dificuldade
+- Cortar o motor mantém uma breve inércia, reduz gradualmente a subida e passa à queda. Não há mais reset instantâneo da velocidade. A gravidade do jogo funciona em todas as altitudes. A câmera acompanha a passagem para a descida suavemente, sem alterar a escala.
+- O combustível é mais frequente no início e fica muito mais raro no espaço. A chance de suprimentos, a proporção de gasolina e a densidade de geração caem conforme a altitude. Foram removidos os suprimentos extras e o abastecimento automático dos antigos marcos.
+- Mapas novos continuam aleatórios por lançamento; retomar mantém o mapa já sorteado. Compra individual de modelos e controles/tela cheia dos cinco jogos foram preservados.
+
+## Checkpoints de altitude
+Marcos em **3, 7, 12, 19, 28, 38 e 48 km**. O painel mostra o próximo, a distância restante e o bônus; a barra lateral marca cada altura. A primeira conquista de cada marco oferece, respectivamente, $50, $90, $130, $180, $260, $360 e $500, pagos no encerramento do voo e mostrados na renda prevista. Repetir um marco não paga o bônus novamente. Esses marcos não são pontos de respawn e não dão combustível.
+
+Saves antigos mantêm seu inventário e dinheiro; marcos anteriores ao recorde já registrado são reconhecidos sem pagamento retroativo. Uma nova campanha permite conquistar todos desde o começo.
+
+## Voltar ao dia 1
+O botão **↺ DIA 1** fica no cabeçalho do jogo. Ele abre uma confirmação: cancelar mantém o voo e o progresso; confirmar apaga dias, dinheiro, peças e conquistas apenas do Take Down e retorna ao prólogo. O próximo voo será o dia 1. Os recordes dos outros jogos não são alterados.
+
+## Abrir, hospedar e verificação
+O ZIP contém index.html e render.yaml na raiz. Extraia e abra index.html, ou envie tudo ao GitHub e conecte no Render por New → Blueprint.
+
+Verificação: 42 quadros da sequência em três formatos de tela, sete planos distintos, no máximo uma Terra por quadro, recorte da janela validado por pixels, gravidade e corte suave do motor em várias velocidades/altitudes, escassez crescente, checkpoints, pagamento único, retomada tardia da cena e confirmação/cancelamento de nova campanha. Um piloto externo de teste completou a nova campanha em 17 lançamentos; isso não é uma previsão para todos os jogadores. Interface e APIs foram simuladas em DOM; arte foi renderizada em Canvas CPU. Não houve verificação em navegador real/GPU ou celular físico.
+
+## Histórico V20
+
+# Arcade Machine — V20
+
+## Ajustes de controle e legibilidade do Take Down
+- A câmera usa uma escala fixa para cada tamanho de janela. Acelerar não afasta o cenário. O foguete e todos os objetos usam a mesma escala, sem tamanho mínimo exclusivo do foguete.
+- Velocidade reduzida: limite base 130, chegando a 238 com motor máximo, contra 158–320 da V19. Empuxo volta ao ritmo anterior (52 + 8,5 por melhoria).
+- Cortar motor e auxiliar anula a subida e inicia a descida imediatamente. Não existe mais a longa subida por inércia. A pane elétrica mantém seu comportamento próprio. Anéis ainda impulsionam um foguete sem combustível, mas um corte deliberado do motor cancela o impulso em andamento.
+- Combustível e reparos são mais comuns; suprimentos são sorteados perto da rota, com variação de espaçamento e posição. Ganharam ilustrações maiores, contorno luminoso, nomes e até dois indicadores para suprimentos próximos fora da tela.
+- Comprar uma peça libera apenas aquele modelo. Modelos inferiores não adquiridos podem ser comprados separadamente. Selecionar continua gratuito e o segundo clique compra/equipa. O salvamento preserva listas com lacunas.
+- Os modelos já registrados como adquiridos em saves anteriores foram mantidos: a versão antiga não registrava recibos que permitissem separar compras reais de liberações automáticas. Não há perda de dinheiro nem de peças salvas.
+
+Verificação: compra individual e recarga do inventário, interface de dois cliques, corte do motor em três níveis de melhoria, suprimentos próximos, escala constante em cinco velocidades e três formatos de tela, pane elétrica, anéis, campanha de interceptação e pacotes offline. Interface e tela cheia foram verificadas em DOM simulado; desenhos, em Canvas CPU. Falta conferir em navegador real/GPU e celular físico.
+
+O ZIP contém render.yaml e index.html na raiz. Para Render, envie tudo a um repositório e use New → Blueprint.
+
+## Histórico V19
+
+# Arcade Machine — V19
+
+## Novidades
+- **Projeto Take Down**: substitui a expedição lunar por uma missão para destruir o asteroide TK–87, que se aproxima da Terra. Aponte o foguete para o alvo no radar e colida fisicamente com ele. A altitude sozinha não vence a missão. O impacto tem sequência de fragmentação e uma conquista exclusiva.
+- Dinheiro, dias e peças da campanha anterior são preservados. A introdução da nova missão aparece uma vez; a conquista de interceptação é nova.
+- Foguete um pouco mais rápido: empuxo base 52 → 56, limite base 145 → 158; os motores melhorados também recebem pequeno aumento. A queda mantém o ritmo anterior.
+- Cada lançamento recebe uma semente aleatória nova. Tipos, posições, espaçamento, velocidades dos aviões e presença de coletáveis e anéis são sorteados dentro das regiões adequadas. Não há sequência fixa por dia. Retomar um voo mantém o mundo já sorteado.
+- Oficina: primeiro clique seleciona e mostra a montagem; segundo clique na mesma peça compra e equipa, ou reequipa grátis se já adquirida. Não há botão separado de compra. Estados selecionado, adquirido, em uso, disponível e bloqueado por falta de créditos são indicados por texto e cores.
+- Neon Drift: removidos giros forçados do carro do jogador; aderência e direção recuperam ao soltar o drift. Barreiras não armazenam rotação nem prendem a traseira. No PC, o mouse segura o drift e A/D ou setas dirigem.
+- Tela cheia nos cinco jogos. Nos quatro jogos clássicos, botão ou F alterna tela cheia nativa com ampliação na janela como alternativa. Escape reduz antes de sair do jogo. No computador ficam ocultos campo de arraste e botões de toque. Usar toque volta a mostrar os controles móveis.
+
+## Abrir e hospedar
+Extraia o ZIP e abra index.html. Os arquivos do ZIP estão na raiz, prontos para um repositório Git.
+
+Para Render: envie todo o conteúdo para o GitHub, incluindo render.yaml ao lado de index.html. No Render, New → Blueprint → conecte o repositório. É um site estático, sem servidor ou dependências para instalar.
+
+## Verificação desta versão
+Testes de física, recuperação de drift, colisões, oito circuitos com NPCs, compra/equipamento, missão e recompensas, mapas novos e retomada determinística, controles de PC/toque e tela cheia com APIs simuladas. Um piloto externo somente de teste concluiu a campanha de interceptação. Desenhos da missão foram verificados com Canvas em CPU em três formatos de tela. Não houve verificação em navegador real/GPU nem em celular físico.
+
+## Documentação anterior
+
 # Atualização V18 — instrumentos, renda e anéis
 
 - Medidores maiores de combustível, casco, auxiliar e escudo; rota vertical até a Lua com altitude atual e recorde do voo.

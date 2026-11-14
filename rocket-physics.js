@@ -6,6 +6,7 @@
   function fresh() {
     return {
       schema: 2,
+      routeRevision:21,
       day: 0,
       money: 0,
       seed: 1987,
@@ -17,6 +18,7 @@
       totalEarned: 0,
       contracts: [],
       moon: false,
+      intercepted: false,
       history: [],
       pending: null,
       introSeen: false,
@@ -45,20 +47,16 @@
     for (const u of D.upgrades)
       p.levels[u.id] = Math.floor(C(Number(raw.levels?.[u.id]) || 0, 0, u.max));
     for (const u of D.upgrades) {
-      const highest = Math.max(
-        p.levels[u.id],
-        ...(Array.isArray(raw.owned?.[u.id])
-          ? raw.owned[u.id].filter(
-              (v) => Number.isInteger(v) && v >= 0 && v <= u.max,
-            )
-          : []),
-      );
-      p.owned[u.id] = Array.from({ length: highest + 1 }, (_, i) => i);
+      const saved = Array.isArray(raw.owned?.[u.id]) ? raw.owned[u.id].filter(v => Number.isInteger(v) && v>=0 && v<=u.max) : [];
+      p.owned[u.id] = [...new Set([0, p.levels[u.id], ...saved])].sort((a,b)=>a-b);
     }
     p.contracts = Array.isArray(raw.contracts)
       ? raw.contracts.filter((id) => D.contracts.some((c) => c.id === id))
       : [];
+    if (raw.routeRevision !== 21) for(const m of D.milestones) if(p.best>=m.height && !p.contracts.includes("route_"+m.height)) p.contracts.push("route_"+m.height);
     p.moon = !!raw.moon;
+    p.intercepted = !!raw.intercepted;
+    p.missionIntroSeen = !!raw.missionIntroSeen;
     p.introSeen = !!raw.introSeen;
     p.settings = {
       control:
@@ -81,6 +79,9 @@
     }
     return p;
   }
+  function owns(p,id,target) {
+    return Number.isInteger(target) && (target === 0 || p.levels[id] === target || (p.owned?.[id] || []).includes(target));
+  }
   function ownedLevel(p, id) {
     return Math.max(p.levels[id] || 0, ...(p.owned?.[id] || [0]));
   }
@@ -92,7 +93,7 @@
       !u ||
       !Number.isInteger(target) ||
       target < 0 ||
-      target > ownedLevel(p, id)
+      target > u.max || !owns(p,id,target)
     )
       return { ok: false, reason: "Adquira esse modelo primeiro." };
     p.levels[id] = target;
@@ -106,9 +107,8 @@
       };
     const u = D.upgrades.find((u) => u.id === id);
     if (!u) return { ok: false, reason: "Peça desconhecida." };
-    const current = ownedLevel(p, id);
-    target = target === undefined ? current + 1 : Number(target);
-    if (!Number.isInteger(target) || target <= current || target > u.max)
+    target = target === undefined ? Array.from({length:u.max},(_,i)=>i+1).find(v=>!owns(p,id,v)) : Number(target);
+    if (!Number.isInteger(target) || target < 1 || owns(p,id,target) || target > u.max)
       return { ok: false, reason: "Modelo já adquirido ou nível inválido." };
     const price = D.cost(id, target - 1);
     if (p.money < price)
@@ -116,7 +116,7 @@
     p.money -= price;
     p.levels[id] = target;
     if (!p.owned) p.owned = {};
-    p.owned[id] = Array.from({ length: target + 1 }, (_, i) => i);
+    p.owned[id] = [...new Set([0, ...(p.owned[id] || []), target])].sort((a,b)=>a-b);
     return { ok: true, price, level: target };
   }
   class Flight {
@@ -153,6 +153,9 @@
       this.generated = 0;
       this.objects = [];
       this.nextObject = 1;
+      this.lastMothershipAt = -10000;
+      this.arcadeRelicSpawned = false;
+      this.arcadeMemory = false;
       this.depots = [];
       this.events = [];
       this.ended = false;
@@ -162,6 +165,8 @@
       this.maxSpeed = 0;
       this.countdown = 2.4;
       this.approach = 0;
+      this.impactPoint = null;
+      this.cinematicCues = [];
       this.engineOn = true;
       this.boostOn = false;
       this.input = { steer: 0, thrust: true, boost: false };
@@ -191,10 +196,6 @@
       if (this.ended) return;
       this.ended = true;
       this.win = win;
-      if (win) {
-        this.y = D.goal;
-        this.maxY = D.goal;
-      }
       this.reason = reason;
       this.endTime = this.time;
       this.emit("finish", { win, reason });
@@ -232,7 +233,7 @@
         rotation = o.rotation || 0,
         c = Math.cos(rotation),
         s = Math.sin(rotation),
-        facing = o.type === "plane" ? o.facing || (o.vx < 0 ? -1 : 1) : 1;
+        facing = ["plane","bird"].includes(o.type) ? o.facing || (o.vx < 0 ? -1 : 1) : 1;
       let contact = null;
       for (const along of [-17, 7, 32]) {
         const x = this.x + Math.sin(this.angle) * along - o.x,
@@ -268,7 +269,7 @@
         });
         this.vy *= 0.88;
         this.angularVelocity += (this.random() - 0.5) * 2;
-        this.damage(13, { kind: "storm" });
+        this.damage(15, { kind: "storm" });
         this.emit("lightning", { x: o.x, y: o.y });
         return true;
       }
@@ -299,7 +300,7 @@
         2.4,
       );
       this.turnKick = 0.9;
-      if (o.type === "plane" && o.facing === undefined)
+      if (["plane","bird"].includes(o.type) && o.facing === undefined)
         o.facing = o.vx < 0 ? -1 : 1;
       o.vx = (o.vx || 0) - nx * j * 0.5;
       o.vy = (o.vy || 0) - ny * j * 0.45 - 12;
@@ -308,10 +309,14 @@
       o.flash = 0.25;
       o.state = soft ? (o.type === "balloon" ? "popped" : "flee") : "wreck";
       o.age = 0;
+      if(o.type==="bird"){
+        o.spin=0;o.vx=(o.facing||1)*85;
+        this.emit("feathers",{x:o.x,y:o.y,kind:"bird",vx:this.vx,vy:this.vy});
+      }
       if (o.kind === "gate") { o.state = null; o.vx = 0; o.vy = 0; o.spin = 0; o.rotation = 0; }
       this.impactAt = this.time;
       this.impactCount++;
-      this.damage((soft ? 4 : 7) + impact * (soft ? 0.14 : 0.23), {
+      this.damage(((soft ? 4 : 7) + impact * (soft ? 0.14 : 0.23))*1.2, {
         kind: o.type,
         force: impact,
         normalX: nx,
@@ -328,26 +333,28 @@
     }
     spawn() {
       while (this.generated < this.maxY + 1100) {
-        this.generated += 190;
+        this.generated += 150 + Math.min(140,this.generated*.003) + this.random()*160;
         const h = this.generated,
           space = h > 7000,
-          safe = Math.sin(h * 0.0017 + this.seed) * 440;
+          safe = C(this.x + this.vx * .7, -600, 600);
         let x = (this.random() - 0.5) * 1600;
         if (h < 450 && Math.abs(x) < 130) x += x >= 0 ? 210 : -210;
         x = C(x, -850, 850);
-        const type = !space
+        let type = !space
           ? h < 3000
             ? ["balloon", "plane", "bird"][Math.floor(this.random() * 3)]
             : ["storm", "drone", "plane"][Math.floor(this.random() * 3)]
           : ["asteroid", "satellite", "ufo"][Math.floor(this.random() * 3)];
-        this.objects.push({
+        if(h>=18000&&this.random()<.27)type="deepSatellite";
+        if(h>=32000&&h-this.lastMothershipAt>6000&&this.random()<.07)type="mothership";
+        if (this.random() < .85) { if(type==="mothership")this.lastMothershipAt=h; this.objects.push({
           id: this.nextObject++,
           kind: "obstacle",
           type,
           x,
           y: h + this.random() * 60,
           r:
-            type === "storm"
+            type === "mothership" ? 110 : type === "deepSatellite" ? 80 : type === "storm"
               ? 65
               : type === "plane"
                 ? 38
@@ -355,45 +362,43 @@
                   ? 34
                   : 24 + this.random() * 12,
           vx:
-            type === "plane"
+            type === "bird" ? (this.random()>.5?1:-1)*(24+this.random()*18) : type === "mothership" ? (this.random()>.5?1:-1)*(10+this.random()*8) : type === "plane"
               ? this.random() > 0.5
-                ? 40
-                : -40
+                ? 28 + this.random() * 24
+                : -28 - this.random() * 24
               : type === "ufo"
-                ? 25
+                ? (this.random() - .5) * 64
                 : 0,
           phase: this.random() * 6,
           hit: false,
-        });
-        const roll = this.random(),
-          pickup =
-            roll < 0.43
-              ? "cash"
-              : roll < 0.68
-                ? "fuel"
-                : roll < 0.83
-                  ? "repair"
-                  : roll < 0.94
-                    ? "aux"
-                    : "shield";
-        this.objects.push({
+        });}
+        const supply = D.supplies(h), roll = this.random(),
+          pickup = roll < supply.fuelWeight ? "fuel" : roll < supply.fuelWeight+supply.repairWeight ? "repair" : roll < .87 ? "cash" : roll < .96 ? "aux" : "shield";
+        if (this.random() < supply.chance) { const pickupObject = {
           id: this.nextObject++,
           kind: "pickup",
           type: pickup,
-          x: safe + (this.random() - 0.5) * 200,
-          y: h + 100,
-          r: 18,
+          x: C(safe + (this.random() - 0.5) * supply.spread, -900, 900),
+          y: h + 45 + this.random() * 150,
+          r: 24,
           vx: 0,
           phase: this.random() * 6,
           hit: false,
-        });
-        if (h > 9000 && Math.floor(h / 230) % 7 === 0)
+        };
+          if(pickup==="fuel"){const grade=D.fuelGrade(pickupObject);pickupObject.fuelTier=grade.tier;pickupObject.r=grade.radius;}
+          this.objects.push(pickupObject);
+        }
+        if(h>20000&&h<44000&&!this.arcadeRelicSpawned&&this.random()<.006){
+          this.arcadeRelicSpawned=true;
+          this.objects.push({id:this.nextObject++,kind:"pickup",type:"arcadeRelic",x:C(safe+(this.random()-.5)*400,-900,900),y:h+100,r:26,vx:0,phase:this.random()*6,hit:false});
+        }
+        if (h > 9000 && this.random() < .13)
           this.objects.push({
             id: this.nextObject++,
             kind: "gate",
             type: "gate",
             x: safe,
-            y: h + 160,
+            y: h + 70 + this.random() * 100,
             r: 65,
             vx: 0,
             phase: 0,
@@ -405,16 +410,17 @@
       if (o.hit) return;
       o.hit = true;
       o.collected = 0.55;
+      let fuelAdded=0;
+      const fuelGrade=o.type==="fuel"?D.fuelGrade(o):null;
       switch (o.type) {
+        case "arcadeRelic": this.arcadeMemory=true;break;
         case "cash":
           this.coins++;
           this.cash += 12 + Math.floor(this.y / 2500) * 4;
           break;
         case "fuel":
-          this.fuel = Math.min(
-            this.stats.fuel,
-            this.fuel + this.stats.fuel * 0.23 + 3,
-          );
+          fuelAdded=Math.min(this.stats.fuel-this.fuel,this.stats.fuel*fuelGrade.fraction+fuelGrade.liters);
+          this.fuel+=fuelAdded;
           this.fuelPacks++;
           break;
         case "repair":
@@ -436,6 +442,7 @@
       }
       this.emit("pickup", {
         kind: o.type,
+        fuelAdded, fuelTier:fuelGrade?.tier || 0,
         x: o.x,
         y: o.y,
         amount: o.type === "cash" ? 12 + Math.floor(this.y / 2500) * 4 : 0,
@@ -476,16 +483,16 @@
       }
       if (this.approach > 0) {
         this.approach += dt;
-        this.y = Math.min(D.goal, this.y + dt * 90);
-        this.x *= Math.exp(-dt * 1.8);
-        this.angle *= Math.exp(-dt * 3);
-        if (this.approach >= 3.5)
-          this.finish(true, "POUSO ASSISTIDO EM SELENE");
+        this.engineOn = false; this.boostOn = false;
+        for (const [at,name] of [[5.5,"pelicano"],[12,"ground"],[19,"burn"],[25,"silence"],[27.2,"impact"],[30.5,"relief"],[36,"saved"]])
+          if(this.approach>=at&&!this.cinematicCues.includes(name)){this.cinematicCues.push(name);this.emit("cinemaCue",{name});}
+        if (this.approach >= D.finaleDuration) this.finish(true, "TK–87 NEUTRALIZADO · TERRA A SALVO");
         return;
       }
+      const deliberateCut = this.engineOn && !this.input.thrust && this.disabledFor <= 0;
       this.invuln = Math.max(0, this.invuln - dt);
       const density = Math.exp(-this.y / 6500),
-        gravity = 36 * (0.45 + 0.55 * Math.exp(-this.y / 14000)),
+        gravity = 36,
         wind =
           this.y < 9000
             ? Math.sin(this.time * 0.55 + this.seed) *
@@ -530,6 +537,10 @@
         this.engineOn = !!this.input.thrust && this.fuel > 0;
         this.boostOn = !!this.input.boost && this.aux > 0;
       }
+      if (deliberateCut && !this.boostOn) this.gateBoost = 0;
+      // Gentle coast damping keeps speed-dependent momentum controllable.
+      // Gate impulses and electrical outages retain their separate response.
+      const coastDrag=!this.engineOn&&!this.boostOn&&!locked&&this.gateBoost<=0?Math.max(0,this.vy)*.30:0;
       let force = 0;
       if (this.engineOn) {
         force += this.stats.thrust;
@@ -541,21 +552,22 @@
         this.boostTime += dt;
       }
       this.vx +=
-        (Math.sin(this.angle) * force +
+        (Math.sin(this.angle) * force * 1.15 +
           wind -
-          this.vx * (0.25 + density * 0.22)) *
+          this.vx * (0.23 + density * 0.20)) *
         dt;
       this.vy +=
         (Math.cos(this.angle) * force -
-          gravity -
+          gravity - coastDrag -
           (this.vy < 0 ? 0.00065 : 0.0016) *
             Math.max(0.12, density) *
             this.vy *
             Math.abs(this.vy)) *
         dt;
-      this.vx = C(this.vx, -180, 180);
+      this.vx = C(this.vx, -195, 195);
       this.gateBoost = Math.max(0, this.gateBoost - dt);
-      this.vy = C(this.vy, -300, this.stats.maxSpeed + 105 * Math.min(1, this.gateBoost));
+      const speedCeiling=this.stats.maxSpeed+105*Math.min(1,this.gateBoost);
+      this.vy=C(this.vy,-300,force>0?speedCeiling:Math.max(speedCeiling,this.vy));
       this.previousX = this.x; this.previousY = this.y;
       this.x += this.vx * dt;
       this.y += this.vy * dt;
@@ -565,19 +577,20 @@
       if (Math.abs(this.x) > 1050) {
         this.x = C(this.x, -1050, 1050);
         this.vx *= -0.4;
-        this.damage(8);
+        this.damage(10);
       }
       this.spawn();
       this.updateObjects(dt);
-      for (const mark of [3000, 7000, 12000, 19000])
-        if (this.maxY >= mark && !this.depots.includes(mark)) {
-          this.depots.push(mark);
-          this.fuel = Math.min(
-            this.stats.fuel,
-            this.fuel + this.stats.fuel * 0.18,
-          );
-          this.emit("zone", { name: D.zone(mark).short });
-        }
+      for (const m of D.milestones) if(this.maxY>=m.height && !this.depots.includes(m.height)) {
+        this.depots.push(m.height);
+        const fuelAdded=Math.min(this.stats.fuel-this.fuel,this.stats.fuel*.20);this.fuel+=fuelAdded;
+        this.emit("checkpoint",{height:m.height,name:m.name,reward:m.reward,fuelAdded});
+      }
+      if (this.maxY>=D.goal && this.hp>0 && !this.crashing) {
+        this.y=D.goal;this.maxY=D.goal;this.approach=.001;this.impactPoint=D.target(this);
+        this.engineOn=false;this.boostOn=false;
+        this.emit("approach");return;
+      }
       if (
         this.disabledFor <= 0 &&
         this.time - this.lastHit > 7 &&
@@ -587,11 +600,6 @@
           this.stats.shield,
           this.shield + dt * this.stats.shieldRegen,
         );
-      if (this.maxY >= D.goal - 100) {
-        this.approach = 0.01;
-        this.emit("approach");
-        return;
-      }
       if (this.y <= D.launchY) {
         this.y = D.launchY;
         this.vy = Math.max(0, this.vy);
@@ -610,7 +618,14 @@
     }
     updateObjects(dt) {
       for (const o of this.objects) {
-        if (o.type === "plane" && !o.state) o.facing = o.vx < 0 ? -1 : 1;
+        if(o.type==="bird"&&!o.state){
+          if(!o.vx)o.vx=Math.sin(o.phase||1)>0?30:-30;
+          if(!Number.isFinite(o.baseY))o.baseY=o.y;
+          o.flightClock=(o.flightClock||0)+dt;
+          o.y=o.baseY+Math.sin(o.flightClock*1.7+(o.phase||0))*11;
+        }
+        if(o.type==="mothership"&&!o.state){if(!Number.isFinite(o.baseY))o.baseY=o.y;o.flightClock=(o.flightClock||0)+dt;o.y=o.baseY+Math.sin(o.flightClock*.6+(o.phase||0))*12;}
+        if (["plane","bird"].includes(o.type) && !o.state) o.facing = o.vx < 0 ? -1 : 1;
         o.cooldown = Math.max(0, (o.cooldown || 0) - dt);
         o.flash = Math.max(0, (o.flash || 0) - dt);
         if (o.hit) {
@@ -685,7 +700,7 @@
         !Number.isFinite(raw.y) ||
         !Number.isFinite(raw.time) ||
         raw.time < 0 ||
-        raw.time > 285 ||
+        raw.time > 280 + D.finaleDuration + 5 ||
         !Number.isInteger(raw.id) ||
         raw.id < 1
       )
@@ -733,7 +748,7 @@
       f.aux = C(Number(f.aux) || 0, 0, f.stats.booster);
       f.objects = Array.isArray(f.objects)
         ? f.objects
-            .slice(-128)
+            .slice(-256)
             .filter(
               (o) =>
                 Number.isFinite(o.x) &&
@@ -744,6 +759,8 @@
                 ["obstacle", "pickup", "gate"].includes(o.kind),
             )
         : [];
+      for(const o of f.objects) if(o.kind==="pickup"&&o.type==="fuel"){const grade=D.fuelGrade(o);o.fuelTier=grade.tier;o.r=grade.radius;}
+      if (f.approach > 0 && !f.impactPoint) f.impactPoint=D.target(f);
       f.events = [];
       f.input = {
         steer: 0,
@@ -756,12 +773,16 @@
       return f;
     }
   }
-  function launch(p, difficulty = "normal") {
+  function randomSeed() {
+    if (root.crypto?.getRandomValues) return root.crypto.getRandomValues(new Uint32Array(1))[0];
+    return (Math.floor(Math.random() * 4294967296) ^ Date.now()) >>> 0;
+  }
+  function launch(p, difficulty = "normal", options = {}) {
     if (p.pending) throw Error("Retome ou encerre o voo atual.");
     p.day++;
     const f = new Flight(p.levels, {
       id: p.day,
-      seed: p.seed + p.day * 7919,
+      seed: options.seed ?? randomSeed(),
       difficulty,
     });
     p.pending = f.save();
@@ -771,7 +792,7 @@
     let income = 55 + Math.floor(f.maxY * .035 + f.cash + Math.max(0, f.time - f.countdown) * .15);
     if (f.difficulty === "hard") income = Math.round(income * 1.15);
     const rewards = D.contracts.filter(c => {
-      const value = c.kind === "flights" ? p.flights + 1 : c.kind === "height" ? Math.max(p.best, f.maxY) : c.kind === "coins" ? p.totalCoins + f.coins : c.kind === "fuel" ? p.totalFuel + f.fuelPacks : c.kind === "clean" ? Math.max(f.cleanHeight || 0, f.hits === 0 ? f.maxY : 0) : 0;
+      const value = c.kind === "flights" ? p.flights + 1 : c.kind === "height" ? Math.max(p.best, f.maxY) : c.kind === "coins" ? p.totalCoins + f.coins : c.kind === "fuel" ? p.totalFuel + f.fuelPacks : c.kind === "relic" ? (f.arcadeMemory ? 1 : 0) : c.kind === "intercept" ? (f.win ? 1 : 0) : c.kind === "clean" ? Math.max(f.cleanHeight || 0, f.hits === 0 ? f.maxY : 0) : 0;
       return value >= c.target && !p.contracts.includes(c.id);
     });
     const contracts = rewards.reduce((sum, c) => sum + c.reward, 0);
@@ -793,7 +814,7 @@
     p.contracts.push(...rewards.map(c => c.id));
     p.money += income + contracts;
     p.totalEarned += income + contracts;
-    p.moon = p.moon || f.win;
+    p.intercepted = p.intercepted || f.win;
     p.lastSettled = f.id;
     p.pending = null;
     const report = {
@@ -819,6 +840,7 @@
     purchase,
     equip,
     ownedLevel,
+    owns,
     launch,
     settle,
     earnings,

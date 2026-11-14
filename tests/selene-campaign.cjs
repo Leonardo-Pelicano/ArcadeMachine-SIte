@@ -64,7 +64,7 @@ for (let day = 1; day <= 45; day++) {
     if (!ids.length) break;
     P.purchase(p, ids[0]);
   }
-  const f = P.launch(p);
+  const f = P.launch(p, "normal", {seed:1987+day*7919});
   while (!f.ended) {
     pilot(f);
     f.step(0.025);
@@ -78,18 +78,18 @@ for (let day = 1; day <= 45; day++) {
     p.money,
     Object.values(p.levels).join(""),
   );
-  if (p.moon) break;
+  if (p.intercepted) break;
 }
 require("node:assert/strict")(
-  p.moon,
+  p.intercepted,
   "A skilled test pilot can finish the campaign",
 );
 require("node:assert/strict")(
-  p.day >= 6 && p.day <= 30,
+  p.day >= 3 && p.day <= 30,
   "Campaign progression remains bounded",
 );
 console.log(
-  "PASS complete campaign to Moon in " +
+  "PASS complete asteroid interception campaign in " +
     p.day +
     " days; test-only external pilot, no runtime autopilot.",
 );

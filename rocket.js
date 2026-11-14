@@ -37,7 +37,11 @@
     module = "engine",
     tier = 1,
     purchaseQuip = "",
+    purchaseSelection = null,
     lastRadio = -100,
+    checkpointUntil = 0,
+    resetResume = false,
+    lastScoreBeat = -1,
     mutedVoice = false,
     touchUI = matchMedia("(pointer:coarse)").matches,
     wasPausedForOptions = false,
@@ -58,6 +62,17 @@
         ? fmt(n) + " m"
         : (n / 1000).toLocaleString("pt-BR", { maximumFractionDigits: 1 }) +
           " km";
+  const routeTrack=$(".selene-moon-track");
+  for(const m of D.milestones){const tick=document.createElement("span");tick.className="selene-route-tick";tick.dataset.height=m.height;tick.style.bottom=(m.height/D.goal*100)+"%";tick.innerHTML="<i></i><small>"+(m.height/1000)+"k</small>";tick.title=m.name+" · +$"+m.reward;routeTrack.append(tick);}
+  function finaleScore(){
+    if(!flight?.approach||flight.ended||paused||screen!=="flight")return;
+    window.ArcadeAudio.music(null);
+    const a=flight.approach,beat=Math.floor(a*2);if(beat===lastScoreBeat)return;lastScoreBeat=beat;
+    const state=window.ArcadeAudio.state;if(state.muted||!state.musicEnabled||(a>25&&a<29.5))return;
+    const notes=a>30.5?[130.81,164.81,196,261.63]:[130.81,155.56,196,233.08];
+    window.arcadeSound?.tone(notes[beat%4],.45,"triangle",.012);
+    if(beat%4===0)window.arcadeSound?.tone(a>30.5?65.4:49,.9,"sine",.018);
+  }
   const story = [
     {
       title: "UMA IDEIA|QUASE BOA.",
@@ -66,10 +81,10 @@
       text: "Ah, você veio! Excelente. Preciso de um piloto com reflexos rápidos... e uma definição bastante flexível de segurança.",
     },
     {
-      title: "PRÓXIMA PARADA:|A LUA.",
+      title: "ALERTA:|TK–87.",
       who: "DR. PELICANO",
       tag: "DIRETOR, MECÂNICO E ÚNICO FUNCIONÁRIO",
-      text: "Eu sou o doutor Pelicano! Depois de anos de pesquisa, três torradeiras e um pequeno incêndio, construí o P–87. Nosso destino? Aquela pedra enorme ali no céu!",
+      text: "Eu sou o doutor Pelicano! Depois de anos de pesquisa, três torradeiras e um pequeno incêndio, construí o P–87. Mas o asteroide TK–87 está vindo em direção à Terra. Nosso objetivo é acertá-lo com o foguete e despedaçar a ameaça!",
     },
     {
       title: "ISSO VAI|MESMO VOAR?",
@@ -93,7 +108,7 @@
       title: "A CIÊNCIA|CHAMA!",
       who: "DR. PELICANO",
       tag: "PODE APERTAR O BOTÃO VERMELHO",
-      text: "Balões, aviões e nuvens elétricas? O céu está um pouquinho ocupado. Nada que bons reflexos não resolvam! Vamos testar, melhorar as peças e colocar o primeiro Pelicano na Lua!",
+      text: "Balões, aviões e nuvens elétricas? O céu está um pouquinho ocupado. Nada que bons reflexos não resolvam! Vamos testar, melhorar as peças e interceptar o TK–87 antes que ele alcance a Terra!",
     },
   ];
   function save() {
@@ -236,6 +251,8 @@
   }
   function setScreen(value) {
     screen = value;
+    modal.dataset.cinema = "false";
+    $("#seleneCheckpointBanner").hidden=true;
     modal.dataset.screen = value;
     const stage = canvas.parentElement,
       shell = modal.querySelector(".selene-shell");
@@ -307,6 +324,7 @@
   }
   function finishStory() {
     profile.introSeen = true;
+    profile.missionIntroSeen = true;
     stopVoice();
     save();
     workshop();
@@ -337,8 +355,7 @@
     };
     function row(id) {
       const u = D.upgrades.find((u) => u.id === id),
-        current = profile.levels[id],
-        highest = P.ownedLevel(profile, id);
+        current = profile.levels[id];
       return (
         '<div class="selene-part-row"><button class="selene-equipped-part" id="module-' +
         id +
@@ -355,7 +372,7 @@
         "</small></button>" +
         Array.from({ length: 6 }, (_, i) => {
           const v = i + 1,
-            owned = v <= highest;
+            owned = P.owns(profile,id,v);
           return (
             '<button type="button" id="selene-part-' +
             id +
@@ -393,18 +410,23 @@
     }
     $("#seleneModelRows").innerHTML = Parts.primary.map(row).join("");
     $("#seleneExtraRows").innerHTML = Parts.extra.map(row).join("");
+    for (const cell of modal.querySelectorAll("[data-model]")) {
+      const id = cell.dataset.model, level = +cell.dataset.tier;
+      const owned = P.owns(profile,id,level), installed = level === profile.levels[id];
+      const locked = !!profile.pending || (!owned && profile.money < D.cost(id,level-1));
+      cell.classList.toggle("equipped", installed); cell.classList.toggle("locked", locked);
+      cell.setAttribute("aria-disabled", String(locked));
+      const badge = document.createElement("span"); badge.className = "selene-model-state";
+      badge.textContent = installed ? "✓ EM USO" : owned ? "✓ ADQUIRIDO" : locked ? "▣ BLOQUEADO" : "＋ DISPONÍVEL";
+      cell.append(badge);
+    }
     for (const c of modal.querySelectorAll("[data-part-paint]"))
       Parts.thumbnail(c, c.dataset.partPaint, +c.dataset.level);
     for (const b of modal.querySelectorAll("[data-module]"))
-      b.onclick = () => {
-        showModule(b.dataset.module, 0);
-        b.focus();
-      };
+      b.onclick = () => activateModel(b.dataset.module, 0);
     for (const b of modal.querySelectorAll("[data-model]")) {
       b.onclick = () => {
-        showModule(b.dataset.model, +b.dataset.tier);
-        b.focus();
-        tone(520, 0.05);
+        activateModel(b.dataset.model, +b.dataset.tier);
       };
       b.onmouseenter = () => previewModel(b.dataset.model, +b.dataset.tier);
       b.onmouseleave = () => previewModel(module, tier);
@@ -423,6 +445,14 @@
       };
     }
   }
+  function activateModel(id, level) {
+    const key = id + ":" + level;
+    if (purchaseSelection === key && module === id && tier === level) { buySelected(); return; }
+    purchaseSelection = key;
+    showModule(id, level);
+    (level ? $("#selene-part-" + id + "-" + level) : $("#module-" + id)).focus();
+    tone(520, .05);
+  }
   function previewModel(id, level) {
     if (screen !== "workshop") return;
     const preview = { ...profile.levels, [id]: level };
@@ -435,8 +465,7 @@
     tier = newTier ?? profile.levels[id];
     const current = profile.levels[id],
       u = D.upgrades.find((u) => u.id === id),
-      highest = P.ownedLevel(profile, id),
-      owned = tier <= highest,
+      owned = P.owns(profile,id,tier),
       installed = tier === current,
       price = owned ? 0 : D.cost(id, tier - 1),
       preview = { ...profile.levels, [id]: tier },
@@ -452,7 +481,7 @@
         String(cell.dataset.model === id && +cell.dataset.tier === tier),
       );
     for (const cell of modal.querySelectorAll("[data-module]"))
-      cell.classList.toggle("selected", cell.dataset.module === id);
+      {cell.classList.toggle("selected", cell.dataset.module === id); cell.setAttribute("aria-pressed", String(cell.dataset.module === id && tier === 0));}
     $("#seleneModuleTag").textContent = u.tag + " / MODELO " + tier;
     $("#seleneModuleName").textContent = Parts.names[id][tier];
     $("#seleneModuleAbout").textContent = u.about;
@@ -466,28 +495,20 @@
       " <em>" +
       b[1] +
       "</em></b></span>";
-    $("#seleneBuy").disabled =
-      !!profile.pending || installed || (!owned && profile.money < price);
-    $("#seleneBuy").textContent = installed
-      ? "MODELO EQUIPADO"
-      : profile.pending
-        ? "VOO EM ANDAMENTO"
-        : owned
-          ? "EQUIPAR MODELO"
-          : "COMPRAR · $" + fmt(price);
     $("#seleneShopMessage").textContent = profile.pending
       ? "Retome ou encerre o voo antes de trocar peças."
       : installed
         ? "Selecione outro modelo para comparar."
         : owned
-          ? "Esta peça já é sua. Equipar não gasta créditos."
+          ? "ADQUIRIDO · Clique novamente na peça para equipar sem custo."
           : profile.money < price
             ? "FALTAM $" + fmt(price - profile.money)
-            : "Comprar e equipar no próximo voo.";
+            : "SELECIONADO · Clique novamente na peça para comprar e equipar.";
     previewModel(id, tier);
   }
   function workshop() {
     stopVoice();
+    purchaseSelection = null;
     paused = false;
     heldBoost = false;
     touchAim = null;
@@ -500,7 +521,7 @@
     $("#seleneBest").textContent = alt(profile.best);
     $("#seleneLaunch").textContent = profile.pending
       ? "RETOMAR VOO ↗"
-      : profile.moon
+      : profile.intercepted
         ? "VOAR DE NOVO ↗"
         : "LANÇAR · DIA " + (profile.day + 1) + " ↗";
     $("#selenePending").hidden = !profile.pending;
@@ -508,8 +529,8 @@
       purchaseQuip ||
       (profile.pending
         ? "Nosso piloto ainda está lá em cima. Não vamos desmontar o motor durante o voo, combinado?"
-        : profile.moon
-          ? "Um pequeno passo para um piloto, um salto enorme para a reputação deste laboratório!"
+        : profile.intercepted
+          ? "A Terra está a salvo! Podemos repetir a simulação para aperfeiçoar o foguete."
           : profile.day === 0
             ? "O orçamento está curto. Vamos voar primeiro, conseguir uma bolsa e melhorar esse foguetinho!"
             : profile.best < 3000
@@ -592,10 +613,12 @@
     setScreen("flight");
     $("#selenePause").textContent = "PAUSAR Ⅱ";
     audioStart();
-    window.ArcadeAudio.music("pilot");
+    lastScoreBeat=-1;
+    window.ArcadeAudio.music(flight.approach?null:"pilot");
     save();
     updateHUD();
-    radio(
+    if(flight.approach) speak(window.SeleneFinale.sample(flight.approach).line);
+    else radio(
       flight.id === 1
         ? matchMedia("(pointer:coarse)").matches
           ? "Aqui é Pelicano! Arraste no campo para pilotar e use os botões com outro dedo!"
@@ -624,21 +647,21 @@
     $("#seleneResultEyebrow").textContent =
       "RELATÓRIO DE TESTE / DIA " + report.day;
     $("#seleneResultTitle").textContent = report.win
-      ? "PELICANO, CHEGAMOS!"
+      ? "A TERRA CONTINUA AQUI."
       : report.hits > 4
-        ? "UM POUSO... CRIATIVO."
+        ? "UM RETORNO... AGITADO."
         : report.height > 7000
           ? "ESTAMOS CHEGANDO LÁ!"
           : "ISSO TAMBÉM É CIÊNCIA.";
     const quip = report.win
-      ? "Eu sabia! Eu sabia! Ignore as minhas vinte e sete cartas de despedida. Você colocou o Pelicano na Lua!"
+      ? "Eu sabia! Eu sabia! Ignore as minhas vinte e sete cartas de despedida. Você destruiu o TK–87! A Terra está a salvo e o laboratório continua inteiro!"
       : report.hits > 4
         ? "O foguete não foi projetado para colecionar aviões. Mas os dados são excelentes! Vamos reforçar o casco e tentar outra vez."
         : report.height < 1500
           ? "Subiu! E voltou! Na ciência, chamamos isso de resultado promissor. Agora temos dinheiro para uma peça de verdade."
           : report.height < 7000
-            ? "Nada de fracasso: descobrimos mais uma maneira de não chegar à Lua. Ajuste o motor, aumente o tanque e vamos de novo!"
-            : "Olhe a altitude! A Lua está ficando preocupada. Precisamos de mais autonomia e um voo bem cuidadoso.";
+            ? "Nada de fracasso: descobrimos mais uma maneira de não alcançar o asteroide. Ajuste o motor, aumente o tanque e vamos de novo!"
+            : "Olhe a altitude! O radar já detecta o TK–87. Precisamos de mais autonomia e um voo bem cuidadoso.";
     $("#seleneResultQuip").textContent = quip;
     $("#seleneResultReason").textContent = report.reason;
     $("#seleneResultNumbers").innerHTML = [
@@ -727,28 +750,42 @@
       window.arcadeSound?.noise(0.65, 0.18, 450);
       radio("Cápsula de emergência! Já estou chamando o resgate!", 3);
     }
+    if(e.type==="feathers")window.arcadeSound?.noise(.24,.035,3800);
+    if(e.type==="pickup"&&e.kind==="arcadeRelic"){notice("SINAL RECUPERADO · ARCADE ZONE / 01",4);radio("Eu conheço essa nave azul... Será que ainda aceita uma ficha?",4);}
     if (e.type === "pickup") tone(e.kind === "cash" ? 880 : 1150, 0.08);
     if (e.type === "zone") {
       window.ArcadeAudio.effect("warp", 0.18);
-      notice("NOVA CAMADA! " + e.name + " · +COMBUSTÍVEL", 3);
-      radio("Novo marco! O tanque recebeu suprimentos. Continue!", 4);
+      notice("NOVA CAMADA! " + e.name, 3);
+      radio("Altitude confirmada. Confira a próxima marca no painel.", 4);
+    }
+    if(e.type==="checkpoint"){
+      const first=!profile.contracts.includes("route_"+e.height);
+      $("#seleneCheckpointBanner").textContent=(e.height/1000)+" KM · "+e.name+(first?" · +$"+e.reward:" · MARCO ALCANÇADO")+" · "+(e.fuelAdded>0?"COMBUSTÍVEL +"+Math.round(e.fuelAdded/flight.stats.fuel*100)+"%":"TANQUE CHEIO");
+      $("#seleneCheckpointBanner").hidden=false;checkpointUntil=flight.time+4;
+      tone(780,.15);$("#gameStatus").textContent=$("#seleneCheckpointBanner").textContent;
+    }
+    if(e.type==="cinemaCue"){
+      if(e.name==="impact"){stopVoice();window.ArcadeAudio.effect("explosion",.6);window.arcadeSound?.noise(.8,.10,850);}
+      else if(e.name!=="silence")speak(window.SeleneFinale.sample(flight.approach).line);
+      if(e.name==="burn")window.ArcadeAudio.effect("warp",.22);
     }
     if (e.type === "gate") {
       window.ArcadeAudio.effect("warp", 0.22);
       notice("ANEL DE ACELERAÇÃO!", 1.2);
     }
     if (e.type === "approach") {
-      notice("LUA À VISTA · PREPARANDO POUSO!", 4);
-      radio(
-        "Eu estou vendo você! Ou é uma mancha na minha lente? Não, é você!",
-        4,
-      );
+      heldBoost=false;window.TouchArcade?.releaseAll();
+      window.ArcadeAudio.music(null);window.ArcadeAudio.effect("warp",.22);
+      speak(window.SeleneFinale.sample(0).line);
+      modal.dataset.cinema="true";save();
     }
     if (e.type === "finish") finish();
   }
   function updateHUD() {
     if (!flight) return;
     const f = flight;
+    modal.dataset.cinema=String(f.approach>0&&!f.ended);
+    if(f.time>=checkpointUntil||f.approach)$("#seleneCheckpointBanner").hidden=true;
     $("#seleneFlightDay").textContent = "DIA " + f.id;
     $("#seleneRouteValue").textContent = alt(Math.max(0, f.y - D.launchY));
     $("#seleneZone").textContent = D.zone(f.y).short;
@@ -756,7 +793,12 @@
     $("#seleneFlightCash").textContent = "COLETA $" + fmt(f.cash);
     $("#seleneIncomeTotal").textContent = "RENDA PREVISTA $" + fmt(pay.total);
     $("#seleneIncomeBreakdown").textContent = "VOO $" + fmt(pay.flight) + " · CONQUISTAS $" + fmt(pay.contracts);
-    $("#seleneMoonPercent").textContent = Math.min(100, f.maxY / D.goal * 100).toFixed(1).replace(".", ",") + "%";
+    const target={y:D.goal},next=D.milestones.find(m=>m.height>f.maxY);
+    $("#seleneTargetDistance").textContent="OBJETIVO: 48 KM · FALTAM "+alt(Math.max(0,D.goal-f.y));
+    $("#seleneNextCheckpoint").textContent=next?(next.height/1000)+" KM · "+next.name:"OBJETIVO ALCANÇADO";
+    $("#seleneCheckpointRemaining").textContent=next?"FALTAM "+alt(Math.max(0,next.height-f.y))+(profile.contracts.includes("route_"+next.height)?"":" · BÔNUS +$"+next.reward):"SEQUÊNCIA DE INTERCEPTAÇÃO";
+    for(const tick of routeTrack.querySelectorAll("[data-height]"))tick.classList.toggle("reached",f.maxY>=+tick.dataset.height);
+    $("#seleneMoonPercent").textContent=(f.win?100:Math.min(100,f.maxY/D.goal*100)).toFixed(1).replace(".",",")+"%";
     const earnedIds = f.announcedContracts || (f.announcedContracts = []);
     for (const reward of pay.rewards) if (!earnedIds.includes(reward.id) && f.countdown <= 0) {
       earnedIds.push(reward.id);
@@ -779,9 +821,9 @@
         Math.round((v / max) * 100) + "%";
     }
     $("#seleneJourneyBar").style.height =
-      Math.min(100, (f.maxY / D.goal) * 100) + "%";
+      (f.win ? 100 : Math.min(100, (f.maxY / target.y) * 100)) + "%";
     $("#seleneAltitudeMarker").style.bottom =
-      clamp((f.y / D.goal) * 100, 0, 100) + "%";
+      clamp((f.y / target.y) * 100, 0, 100) + "%";
     $("#seleneSpeed").textContent = fmt(Math.hypot(f.vx, f.vy)) + " m/s";
     $("#seleneThrust").textContent =
       f.disabledFor > 0
@@ -807,7 +849,7 @@
         : f.crashing
           ? "CÁPSULA EJETADA · RESGATE A CAMINHO"
           : f.approach
-            ? "POUSO ASSISTIDO"
+            ? "IMPACTO CINÉTICO"
             : f.fuel <= 0
               ? "SEM COMBUSTÍVEL · USE O AUXILIAR OU SOLICITE RESGATE"
               : profile.settings.control === "mouse"
@@ -885,7 +927,7 @@
       if (
         flight.fuel < flight.stats.fuel * 0.15 &&
         flight.fuel > 0 &&
-        flight.time - lastRadio > 18
+        flight.time - lastRadio > 18 && !flight.approach
       )
         radio(
           "Combustível baixo! Procure os galões ou corte o motor para economizar.",
@@ -900,6 +942,7 @@
     if (off && !mutedVoice) stopVoice();
     mutedVoice = off;
     audioUpdate();
+    finaleScore();
     view.draw(
       screen === "workshop" || screen === "intro" ? null : flight,
       profile,
@@ -1042,9 +1085,9 @@
     if (performance.now() - resultAt > 350) workshop();
   };
   $("#seleneThrust").onclick = toggleMotor;
-  $("#seleneBuy").onclick = () => {
+  function buySelected() {
     const result =
-      tier <= P.ownedLevel(profile, module)
+      P.owns(profile,module,tier)
         ? P.equip(profile, module, tier)
         : P.purchase(profile, module, tier);
     if (result.ok) {
@@ -1057,7 +1100,7 @@
       save();
       workshop();
     } else $("#seleneShopMessage").textContent = result.reason;
-  };
+  }
   for (const b of document.querySelectorAll("[data-selene-control]"))
     b.onclick = () => {
       profile.settings.control = b.dataset.seleneControl;
@@ -1085,6 +1128,7 @@
     boostButton.addEventListener(type, () => (heldBoost = false));
   $("#seleneMusic").onclick = () => {
     $("#music").click();
+    if(flight?.approach&&!flight.ended)window.ArcadeAudio.music(null);
     syncSound();
   };
   $("#seleneSound").onclick = () => {
@@ -1099,17 +1143,21 @@
     if (!profile.settings.voice) stopVoice();
     else if (screen === "intro") speak(story[chapter].text);
   };
-  $("#seleneNewCampaign").onclick = () => {
-    if ($("#seleneOptionsDialog").open) closeOptions(false);
+  function askDayOne(){
+    resetResume=screen==="flight"&&!paused;
+    if($("#seleneOptionsDialog").open){resetResume=!wasPausedForOptions;closeOptions(false);}
+    if(screen==="flight")pause(true);
     $("#seleneResetDialog").showModal();
-  };
-  $("#seleneKeepCampaign").onclick = () => $("#seleneResetDialog").close();
-  $("#seleneConfirmReset").onclick = () => {
-    profile = P.fresh();
-    flight = null;
-    save();
-    $("#seleneResetDialog").close();
-    intro();
+  }
+  $("#seleneNewCampaign").onclick=askDayOne;
+  $("#seleneDayOne").onclick=askDayOne;
+  $("#seleneKeepCampaign").onclick=()=>$("#seleneResetDialog").close();
+  $("#seleneResetDialog").addEventListener("close",()=>{if(resetResume){resetResume=false;pause(false);}});
+  $("#seleneResetDialog").addEventListener("cancel",e=>{e.preventDefault();$("#seleneResetDialog").close();});
+  $("#seleneConfirmReset").onclick=()=>{
+    resetResume=false;stopVoice();audioStop();window.ArcadeAudio.stopEffects();
+    profile=P.fresh();flight=null;paused=false;checkpointUntil=0;lastScoreBeat=-1;
+    save();$("#seleneResetDialog").close();intro();
   };
   canvas.addEventListener("pointermove", (e) => {
     if (
@@ -1195,7 +1243,7 @@
       syncFullscreen();
       syncInputMode();
       last = 0;
-      if (profile.introSeen || profile.pending) workshop();
+      if (profile.missionIntroSeen || profile.pending) workshop();
       else intro();
       if (frame) cancelAnimationFrame(frame);
       frame = requestAnimationFrame(loop);

@@ -224,68 +224,77 @@
         null,
       );
   }
-  function bird(g, o, t) {
-    const wing = Math.sin(t * (o.state === "flee" ? 17 : 10) + (o.phase || 0)),
-      dir = (o.vx || 1) < 0 ? -1 : 1;
-    g.save();
-    g.scale(dir, 1);
-    path(
-      g,
-      [
-        [-2, 1],
-        ["Q", -17, -18 - wing * 8, -29, -7 - wing * 8],
-        ["Q", -14, -3, -3, 7],
-      ],
-      "#a8b6ab",
-      ink,
-      1.4,
-    );
-    path(
-      g,
-      [
-        [-9, 2],
-        ["Q", -17, -5, -24, 0],
-        [-17, 7],
-        [-8, 7],
-      ],
-      "#627d7f",
-      ink,
-      1.4,
-    );
-    oval(
-      g,
-      0,
-      4,
-      11,
-      6,
-      grad(g, 0, -3, 0, 10, ["#fff0cf", "#b9c9bb"]),
-      ink,
-      1.6,
-    );
-    path(
-      g,
-      [
-        [0, 2],
-        ["Q", 9, -15 - wing * 8, 24, -11 - wing * 8],
-        ["Q", 15, -1, 5, 6],
-      ],
-      "#e1e6cf",
-      ink,
-      1.4,
-    );
-    oval(g, 10, -1, 5, 5, "#eee8cc", ink, 1.3);
-    path(
-      g,
-      [
-        [14, -1],
-        [21, 1],
-        [14, 3],
-      ],
-      "#d6a25e",
-      ink,
-      0.8,
-    );
-    oval(g, 11, -2, 1.2, 1.2, ink, null);
+  function feather(g,x,y,size,color="#d8dfd7"){
+    g.save();g.translate(x,y);g.scale(size/7,size/7);
+    path(g,[[0,-10],["C",-6,-8,-5,1,0,8],["C",6,0,5,-8,0,-10]],color,"#455969",.7);
+    line(g,[[0,-8],[0,11]],"#e5e6d5",.65);for(const k of[-1,1])for(let i=0;i<3;i++)line(g,[[0,-5+i*4],[k*3,-7+i*4]],"#70858c88",.4);
+    g.restore();
+  }
+  function bird(g,o,t){
+    const flap=Math.sin(t*(o.state==="flee"?18:12)+(o.phase||0)),dir=o.facing||((o.vx||1)<0?-1:1);
+    g.save();g.scale(dir,1);g.rotate(Math.sin(t*2+(o.phase||0))*.035);
+    // Far wing, tail and layered flight feathers, behind the rounded body.
+    path(g,[[-6,1],["C",-15,-5-flap*10,-19,-18-flap*16,-30,-9-flap*14],["Q",-34,-2-flap*9,-23,4],[-12,9]],"#718a95",ink,1.2);
+    path(g,[[-12,3],[-29,0],[-33,6],[-24,10],[-11,8]],"#4e6677",ink,1.2);
+    oval(g,-1,5,15,8,grad(g,-7,-3,10,12,["#d7e0da","#9aafb6","#647d90"]),ink,1.4);
+    path(g,[[-7,3],["C",-14,-5-flap*10,-16,-21-flap*19,-27,-17-flap*17],["Q",-33,-13-flap*14,-28,-7-flap*10],["Q",-30,-2-flap*7,-23,3],["Q",-22,8,-14,10],[-2,9]],"#a9bdc7",ink,1.3);
+    for(let i=0;i<4;i++)line(g,[[-8-i*3,4],[-24-i*1.5,-7-flap*(12+i*2)]],i%2?"#718998":"#d4dedc",.8);
+    oval(g,10,-2,6,8,"#728d9a",ink,1.2);
+    path(g,[[5,-1],[6,5],[13,5],[16,1]],"#78a49a",null);
+    oval(g,14,-8,7,6,grad(g,9,-12,18,-3,["#c6d3d5","#819ba7"]),ink,1.2);
+    path(g,[[20,-8],[27,-5],[20,-3]],"#d9b16d",ink,.8);
+    oval(g,16,-9,2,2,"#f5dba3",null);oval(g,16.6,-9.2,1.1,1.1,"#162c40",null);
+    line(g,[[-1,12],[-6,15],[-2,15]],"#b08279",1);line(g,[[5,12],[1,16],[5,16]],"#b08279",1);
+    g.restore();
+  }
+  function deepSatellite(g,o,t){
+    const wreck=o.state==="wreck";g.save();if(!wreck)g.rotate(Math.sin(t*.23+(o.phase||0))*.035);
+    for(const k of[-1,1]){
+      line(g,[[k*14,-22],[k*76,-22]],"#94a9a7",5);line(g,[[k*14,23],[k*76,23]],"#94a9a7",5);
+      solarPanel(g,k*53,-22,47,30,wreck&&k<0);solarPanel(g,k*53,23,47,30,false);
+    }
+    rect(g,-18,-32,36,66,grad(g,-20,-25,20,35,["#e3c98d","#a98f60","#ddd6ad"]),ink,5,1.6);
+    rect(g,-12,-23,24,45,"#b69b69",ink,3,1);for(let i=0;i<4;i++)line(g,[[-9,-17+i*11],[9,-17+i*11]],"#ead8a6",1);
+    // Deep-space telescope and a segmented communication dish.
+    line(g,[[0,-32],[0,-54]],"#a5b7b2",6);
+    path(g,[[-25,-61],["Q",0,-28,25,-61],["Q",0,-70,-25,-61]],"#ccd8d2",ink,1.5);
+    for(const k of[-1,0,1])line(g,[[0,-45],[k*20,-62]],"#718c96",.8);
+    line(g,[[0,-48],[0,-73]],"#bdc8b8",2);oval(g,0,-73,3,3,"#e8c989",ink,.8);
+    rect(g,-13,20,26,19,"#607e92",ink,3,1.3);oval(g,0,30,8,8,"#1b435b",ink,1.2);oval(g,-2,28,4,4,"#96d8db",null);
+    for(const y of[-27,27])for(const x of[-14,14])rivet(g,x,y);
+    if(!wreck){oval(g,12,-23,2.5,2.5,Math.sin(t*3)>0?"#d5e7ad":"#69897b",null);}
+    g.restore();
+  }
+  function mothership(g,o,t){
+    const wreck=o.state==="wreck",pulse=.6+.4*Math.sin(t*2+(o.phase||0));g.save();
+    if(!wreck)for(const x of[-72,0,72]){
+      const z=grad(g,0,13,0,45,["#a6e9d58a","#9bded000"]);path(g,[[x-10,14],[x-15,43+pulse*5],[x+15,43+pulse*5],[x+10,14]],z,null);
+    }
+    // Tiered armored hull, inset bridge, engine pods and a ring of windows.
+    path(g,[[-108,9],[-86,-10],[-58,-23],[58,-23],[86,-10],[108,9],[86,25],[-86,25]],grad(g,0,-25,0,27,["#bdc5b6","#728d91","#304d62"]),ink,2);
+    path(g,[[-68,-14],[-43,-42],[43,-42],[68,-14]],grad(g,0,-44,0,-10,["#718b96","#bccabb","#4e6c7d"]),ink,1.8);
+    path(g,[[-37,-37],[-25,-49],[25,-49],[37,-37],[31,-21],[-31,-21]],"#284d5f",ink,1.3);
+    path(g,[[-28,-36],[-21,-43],[21,-43],[28,-36],[24,-26],[-24,-26]],grad(g,0,-44,0,-24,["#b4e5d8","#4f9c9c"]),"#88bcae",1);
+    for(const x of[-14,0,14])line(g,[[x,-42],[x,-25]],"#426e78",1);
+    if(!wreck){oval(g,0,-32,11,6,"#507f8155",null);for(const x of[-5,5]){oval(g,x,-33,2.5,1.8,"#d3f5b5",null);line(g,[[x,-34],[x,-32]],"#2d5164",.8);}}
+    for(const x of[-80,-60,-40,-20,0,20,40,60,80])rect(g,x-4,0,8,5,wreck?"#4b6269":Math.sin(t*2+x*.1)>.1?"#e6d398":"#82bbb4",ink,1,.7);
+    for(const k of[-1,1]){rect(g,k*84-15,7,30,17,"#617e89",ink,4,1.5);oval(g,k*84,14,8,5,wreck?"#344f60":"#a2d6ca",ink,1);line(g,[[k*55,-18],[k*95,9]],"#d0c69c",1.3);}
+    oval(g,0,20,28,8,"#294e62",ink,1.3);oval(g,0,19,19,4,wreck?"#516c78":"#a5dccd",null);
+    for(const x of[-48,48])line(g,[[x,-25],[x,-55]],"#8aa69f",1.8);
+    for(const x of[-48,48])oval(g,x,-55,2.5,2.5,Math.sin(t*4+x)>0?"#dbc18e":"#728d8d",null);
+    if(wreck)path(g,[[-25,-13],[-8,-5],[-17,5],[8,12]],null,"#233c51",2);
+    g.restore();
+  }
+  function arcadeRelic(g,o,t){
+    g.save();const glow=.65+.2*Math.sin(t*3);g.globalAlpha*=glow;
+    oval(g,0,0,27,35,"#b995dd24",null);g.globalAlpha/=glow;
+    rect(g,-21,-29,42,58,grad(g,0,-30,0,30,["#b0bfc5","#365369"]),ink,6,1.6);
+    rect(g,-16,-24,32,39,"#172b49","#9c87c4",3,1);
+    // The blue ship silhouette and white center strip are the Arcade Zone player.
+    path(g,[[0,-19],[12,8],[4,5],[0,12],[-4,5],[-12,8]],"#57d8ff",null);
+    rect(g,-2,-9,4,16,"#b8f1ff",null,0);
+    g.fillStyle="#cfb3ee";g.textAlign="center";g.font='bold 4.5px "Space Mono",monospace';g.fillText("ARCADE ZONE",0,22);
+    for(const x of[-16,16])for(const y of[-24,24])rivet(g,x,y);
     g.restore();
   }
   function storm(g, o, t) {
@@ -843,6 +852,16 @@
     g.restore();
     g.restore();
   }
+  // TK-87 uses the same physical radius as the flight interception test.
+  function threat(g, x, y, r, t) {
+    g.save(); g.translate(x,y);
+    const plume = grad(g,0,-r*3,0,0,["#df784000","#ed9b4277","#ffd78b"]);
+    path(g,[[-r*.7,-r*.3],[-r*.5,-r*2.2],[0,-r*3.2],[r*.35,-r*1.7],[r*.72,-r*.3]],plume,null);
+    g.shadowColor="#e58d40"; g.shadowBlur=r*.22;
+    asteroid(g,{r,id:87,phase:-.3},t); g.shadowBlur=0;
+    for (const side of [-1,1]) line(g,[[side*r*.6,-r*.52],[side*r*.15,-r*.1],[side*r*.35,r*.22],[side*r*.08,r*.65]],"#e8a25f",Math.max(1,r*.025));
+    g.restore();
+  }
   function gate(g, o, t) {
     g.save();
     const used = (o.boostFlash || 0) > 0,
@@ -952,90 +971,37 @@
     );
     g.restore();
   }
-  function earth(g, x, y, r, t) {
-    g.save();
-    g.translate(x, y);
-    g.scale(r / 100, r / 100);
-    oval(g, 0, 0, 107, 107, "#b5d7cf2a", null);
-    oval(
-      g,
-      0,
-      0,
-      100,
-      100,
-      grad(g, -65, -75, 80, 80, ["#9bc5c4", "#5c96aa", "#3e637f"]),
-      ink,
-      2,
-    );
-    g.beginPath();
-    g.arc(0, 0, 98, 0, TAU);
-    g.clip();
-    path(
-      g,
-      [
-        [-80, -52],
-        [-48, -73],
-        [-22, -57],
-        [-4, -33],
-        [-21, -14],
-        [-4, 9],
-        [-17, 34],
-        [-37, 10],
-        [-45, -11],
-        [-72, -20],
-      ],
-      "#9cb68b",
-      null,
-    );
-    path(
-      g,
-      [
-        [30, -52],
-        [57, -60],
-        [80, -42],
-        [68, -17],
-        [80, 8],
-        [49, 17],
-        [27, -2],
-        [8, -9],
-      ],
-      "#8eac87",
-      null,
-    );
-    path(
-      g,
-      [
-        [28, 20],
-        [53, 31],
-        [42, 69],
-        [21, 49],
-      ],
-      "#b6c49a",
-      null,
-    );
-    g.save();
-    g.globalAlpha = 0.6;
-    for (let i = 0; i < 3; i++) {
-      g.beginPath();
-      g.moveTo(-105, -48 + i * 49);
-      g.bezierCurveTo(-35, -24 + i * 36, 39, -62 + i * 49, 110, -21 + i * 42);
-      g.strokeStyle = "#e7edcf";
-      g.lineWidth = 5;
-      g.stroke();
+  function earth(g,x,y,r,t=0){
+    g.save();g.translate(x,y);g.scale(r/100,r/100);
+    const halo=g.createRadialGradient(0,0,97,0,0,112);halo.addColorStop(0,"#91cfdc66");halo.addColorStop(1,"#91cfdc00");oval(g,0,0,112,112,halo,null);
+    const ocean=g.createRadialGradient(-40,-45,4,0,0,105);ocean.addColorStop(0,"#83b8c0");ocean.addColorStop(.58,"#397b97");ocean.addColorStop(1,"#183b61");oval(g,0,0,100,100,ocean,null);
+    g.beginPath();g.arc(0,0,99,0,TAU);g.clip();
+    const center=(-28+Math.sin(t*.025)*3)*Math.PI/180;
+    const project=([lon,lat])=>{const l=lon*Math.PI/180-center,a=lat*Math.PI/180;return {x:Math.cos(a)*Math.sin(l)*98,y:-Math.sin(a)*98,z:Math.cos(a)*Math.cos(l)};};
+    const continents=[
+      [[-165,65],[-140,70],[-124,69],[-110,72],[-96,72],[-82,62],[-62,52],[-54,49],[-62,42],[-75,36],[-80,25],[-91,18],[-86,12],[-77,8],[-83,7],[-96,17],[-105,24],[-115,31],[-123,43],[-130,53],[-150,60]],
+      [[-81,12],[-70,11],[-62,8],[-52,4],[-47,-2],[-34,-7],[-39,-21],[-48,-28],[-54,-40],[-67,-55],[-75,-45],[-74,-28],[-80,-15],[-78,-2],[-81,8]],
+      [[-17,36],[-6,36],[9,37],[16,33],[32,31],[35,23],[43,12],[51,11],[43,-4],[40,-15],[32,-26],[18,-35],[12,-30],[8,-13],[-1,4],[-10,6],[-17,15]],
+      [[-10,36],[-9,43],[2,49],[-5,58],[10,58],[9,63],[20,71],[32,70],[40,58],[35,46],[27,41],[24,35],[15,38],[12,44],[7,43],[2,41]],
+      [[30,70],[50,69],[80,65],[95,55],[72,30],[55,25],[48,15],[35,28],[27,41],[40,58]],
+      [[-54,60],[-44,61],[-20,70],[-25,80],[-47,84],[-65,79],[-70,69]],
+      [[-8,50],[-5,59],[1,58],[2,51]],[[45,-13],[51,-16],[49,-26],[44,-24]],
+    ];
+    const land=g.createLinearGradient(-60,-75,70,85);land.addColorStop(0,"#b6c3a0");land.addColorStop(.5,"#7d9e7b");land.addColorStop(1,"#487965");
+    for(let i=0;i<continents.length;i++){
+      const points=continents[i].map(project).filter(p=>p.z>-.08);if(points.length<3)continue;
+      path(g,points.map(p=>[p.x,p.y]),i===5?"#d2e1d3":land,"#8fbaa54d",.45);
     }
-    g.restore();
-    path(
-      g,
-      [
-        [52, -110],
-        ["C", 115, -46, 86, 65, 14, 109],
-        [112, 109],
-        [112, -110],
-      ],
-      "#193e6033",
-      null,
-    );
-    g.restore();
+    const desert=[[-14,29],[2,33],[28,29],[32,18],[16,15],[-8,19]].map(project);path(g,desert.map(p=>[p.x,p.y]),"#d3bf9188",null);
+    oval(g,0,98,67,5,"#dae5d9",null);
+    g.save();g.globalAlpha*=.65;
+    for(let i=0;i<29;i++){
+      const lat=-52+(i*37)%112,lon=-106+(i*51)%158,pt=project([lon,lat]);if(pt.z<.15)continue;
+      const len=4+(i%5)*3,drift=Math.sin(t*.06+i)*2;
+      g.beginPath();g.moveTo(pt.x-len,pt.y+drift);g.bezierCurveTo(pt.x-len*.3,pt.y-2+drift,pt.x+len*.2,pt.y+3+drift,pt.x+len,pt.y-1+drift);g.strokeStyle=i%3?"#e8eee2":"#bedcda";g.lineWidth=.7+(i%4)*.55;g.stroke();
+    }g.restore();
+    const shade=g.createLinearGradient(-70,-40,100,45);shade.addColorStop(.15,"#051a3100");shade.addColorStop(.6,"#0b294322");shade.addColorStop(1,"#041329c9");g.fillStyle=shade;g.fillRect(-100,-100,200,200);
+    g.restore();g.save();g.translate(x,y);g.strokeStyle="#acd8d680";g.lineWidth=Math.max(1,r*.012);g.beginPath();g.arc(0,0,r,0,TAU);g.stroke();g.restore();
   }
   function tower(g, x, y) {
     g.save();
@@ -1414,20 +1380,21 @@
     g.save();
     g.lineJoin = "round";
     g.lineCap = "round";
-    const map = { balloon, bird, storm, satellite, drone, ufo, asteroid };
+    const map = { balloon, bird, storm, satellite, deepSatellite, mothership, drone, ufo, asteroid };
     (map[o.type] || asteroid)(g, o, t);
     g.restore();
   }
   root.SeleneArt = {
     drawObstacle,
     balloon,
-    bird,
+    bird, feather, deepSatellite, mothership, arcadeRelic,
     storm,
     satellite,
     drone,
     ufo,
     asteroid,
     gate,
+    threat,
     cloud,
     moon,
     earth,

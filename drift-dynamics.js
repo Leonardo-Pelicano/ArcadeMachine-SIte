@@ -9,6 +9,9 @@
     Object.assign(c, {
       rearGrip: 1,
       yawRate: 0,
+      driftExitArmed: 0,
+      driftExitRemaining: 0,
+      driftExitBias: 0,
       handbrake: false,
       wasHandbrake: false,
       hbPulse: 0,
@@ -59,7 +62,7 @@
     c.handbrake = pressed;
     c.rearGrip +=
       ((pressed ? 0.3 : 1) - c.rearGrip) *
-      (1 - Math.exp(-dt * (pressed ? 12 : 2.6)));
+      (1 - Math.exp(-dt * (pressed ? 12 : 10)));
     if (pressed && !c.wasHandbrake && c.air < 0.05) {
       c.pendingDrift = 0;
       c.driftCharge = 0;
@@ -92,17 +95,24 @@
       -1,
       1,
     );
+    const neutral=Math.abs(steer)<.03;
+    if(c.wasHandbrake&&!c.handbrake){c.driftExitArmed=1;c.driftExitRemaining=0;c.driftExitBias=0;}
+    if(c.handbrake||c.air>.1){c.driftExitArmed=0;c.driftExitRemaining=0;c.driftExitBias=0;}
+    if(c.impact>.02&&c.driftExitRemaining>0){c.driftExitArmed=1;c.driftExitRemaining=0;c.driftExitBias=0;}
+    if(c.driftExitArmed>0){
+      if(neutral&&c.air<.05&&c.impact<=.02){c.driftExitArmed=0;c.driftExitRemaining=1.2;c.driftExitBias=c.heading;}
+    }
+    if(c.driftExitRemaining>0&&!neutral){c.driftExitArmed=1;c.driftExitRemaining=0;c.driftExitBias=0;}
+    const recovering=c.driftExitRemaining>0&&neutral&&c.air<.05&&c.impact<=.02;
     const limit = 0.36 / (1 + c.speed * 0.055),
       demand = steer * limit * (c.handbrake ? 1.15 : 1);
     c.wheelAngle +=
       (clamp(demand, -0.4, 0.4) - c.wheelAngle) *
       (1 - Math.exp(-dt * (c.handbrake ? 8 : 13)));
-    const oversteer = c.handbrake
-        ? c.slipAngle * (0.7 + c.speed * 0.018) * (1 - c.rearGrip)
-        : 0,
+    const oversteer = c.handbrake ? steer * .12 * (1 - c.rearGrip) : 0,
       targetYaw = (c.speed / wheelbase) * Math.tan(c.wheelAngle) + oversteer;
     c.yawRate +=
-      (targetYaw - c.yawRate) * (1 - Math.exp(-dt * (c.handbrake ? 4.5 : 12)));
+      (targetYaw - c.yawRate) * (1 - Math.exp(-dt * (c.handbrake ? 7 : 18)));
     let nextBody = angle(body + (roadYaw + c.yawRate) * dt),
       slip = angle(body + c.yawRate * dt - c.heading),
       tyre = clamp(1 - Math.max(0, Math.abs(slip) - 0.18) * 0.9, 0.45, 1),
@@ -113,23 +123,23 @@
           tyre) /
         Math.max(10, c.speed),
       align = slip * (5.5 + 8 * c.rearGrip) * grip;
-    c.heading = angle(
-      c.heading + (roadYaw + clamp(align, -maxRate, maxRate)) * dt,
-    );
-    c.slipAngle = clamp(angle(nextBody - c.heading), -0.95, 0.95);
-    c.laneV = (c.speed * Math.sin(c.heading)) / r.track.width;
+    const tyreTurn=clamp(align,-maxRate,maxRate);
+    c.heading=angle(c.heading+(roadYaw+tyreTurn)*dt);
+    c.slipAngle = clamp(angle(nextBody - c.heading), -0.48, 0.48);
+    if (!c.handbrake) c.slipAngle *= Math.exp(-dt * 5);
+    if(recovering){
+      // Remove only the drift exit bias and the tyres' remaining return motion.
+      // Road-reference rotation is deliberately preserved: curves stay manual.
+      c.driftExitBias+=tyreTurn*dt;
+      const correction=c.driftExitBias*(1-Math.exp(-dt*7));
+      c.heading=angle(c.heading-correction);c.driftExitBias-=correction;
+      c.driftExitRemaining=Math.max(0,c.driftExitRemaining-dt);
+      if(c.driftExitRemaining===0){c.heading=angle(c.heading-c.driftExitBias);c.driftExitBias=0;}
+    }
+    c.laneV = (c.speed * Math.sin(c.heading)+(c.kickVX||0)) / r.track.width;
     c.lane += c.laneV * dt;
     c.driftRisk = clamp((Math.abs(c.slipAngle) - 0.2) / 0.58, 0, 1);
-    if (Math.abs(c.slipAngle) > 0.79 && c.speed > 20 && c.spinCooldown <= 0) {
-      c.speed *= 0.64;
-      c.spin = 0.65;
-      c.spinCooldown = 3;
-      c.driftSpoiled = true;
-      c.driftCharge = 0;
-      c.pendingDrift = 0;
-      c.yawRate *= 0.3;
-      r.emit("driftFail", { id: c.id });
-    }
+
   }
   function drift(r, c, dt) {
     if (c.id) {
@@ -311,7 +321,7 @@
       out = Math.max(0, v.x * side),
       scrape = clamp(out / 28, 0.015, 0.36),
       protectedCar = c.shield > 0;
-    c.lane = side * limit;
+    c.lane = side * (limit - .025);
     if (out > 0.1) {
       setVelocity(
         c,
@@ -320,6 +330,16 @@
       );
       c.yawRate -= side * clamp(out * 0.055, 0.05, 0.6);
       if (c.id) c.kickVX = -side * out * 0.25;
+    }
+    if (c.id === 0) {
+      // A barrier absorbs the slide instead of recycling it into outward yaw.
+      c.heading = 0;
+      c.kickVX=-side*Math.min(3,.4+out*.08);
+      // Keep exit recovery armed: held steering can rebuild a heading after
+      // contact, so neutral must stabilize it even when no drift was active.
+      c.driftExitArmed=1;c.driftExitRemaining=0;c.driftExitBias=0;
+      c.slipAngle = 0; c.yawRate = 0; c.wheelAngle = 0;
+      c.rearGrip = 1; c.laneV = c.kickVX/r.track.width;
     }
     const severity = clamp(out / 20 + 0.05, 0, 1);
     if (!protectedCar) spoil(c, severity);

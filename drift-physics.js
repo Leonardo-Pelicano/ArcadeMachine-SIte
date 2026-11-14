@@ -236,7 +236,7 @@
       this.controlMode = "pointer";
       this.target = clamp(x, -1.2, 1.2);
     }
-    reposition(){if(this.phase!=='racing'||this.elapsed<(this.resetAt||0))return false;const c=this.player;const lanes=[0,-.55,.55];c.lane=lanes.find(l=>!this.cars.some(o=>o!==c&&Math.abs(o.s-c.s)<8&&Math.abs(o.lane-l)<.35))??0;c.heading=0;c.slipAngle=0;c.wheelAngle=0;c.yawRate=0;c.speed=0;c.kickVX=0;c.driftCharge=0;c.pendingDrift=0;c.driftSpoiled=true;this.elapsed+=2;this.resetAt=this.elapsed+2;this.target=0;this.input.steer=0;this.emit('reposition',{id:0});return true;}
+    reposition(){if(this.phase!=='racing'||this.elapsed<(this.resetAt||0))return false;const c=this.player;const lanes=[0,-.55,.55];c.lane=lanes.find(l=>!this.cars.some(o=>o!==c&&Math.abs(o.s-c.s)<8&&Math.abs(o.lane-l)<.35))??0;c.heading=0;c.slipAngle=0;c.wheelAngle=0;c.yawRate=0;c.speed=0;c.kickVX=0;c.driftExitArmed=0;c.driftExitRemaining=0;c.driftExitBias=0;c.driftCharge=0;c.pendingDrift=0;c.driftSpoiled=true;this.elapsed+=2;this.resetAt=this.elapsed+2;this.target=0;this.input.steer=0;this.emit('reposition',{id:0});return true;}
     updateRanking() {
       const sorted = this.cars
         .slice()
@@ -290,7 +290,7 @@
       c.driftCharge = 0;
       c.pendingDrift = 0;
       c.slow = Math.max(c.slow, power);
-      c.spin = 0.7;
+      c.spin = c.id === 0 ? 0 : 0.7;
       c.speed *= 0.65;
       c.invulnerable = 1.4;
       this.emit("hit", { id: c.id, source });

@@ -83,7 +83,28 @@
       max: 6,
     },
   ];
+  const fuelGrades = [
+    {tier:1,name:"PADRÃO",tag:"P",scale:1,radius:24,fraction:.18,liters:2,color:"#d67a60"},
+    {tier:2,name:"GRANDE",tag:"G",scale:1.35,radius:31,fraction:.29,liters:4,color:"#dab665"},
+    {tier:3,name:"EXTRA GRANDE",tag:"XL",scale:1.65,radius:38,fraction:.40,liters:5,color:"#8ed6df"},
+  ];
+  function fuelTierAt(height){return height>=28000?3:height>=12000?2:1;}
+  function fuelGrade(item){const tier=Number.isInteger(item?.fuelTier)&&item.fuelTier>=1&&item.fuelTier<=3?item.fuelTier:fuelTierAt(Number(item?.y)||0);return fuelGrades[tier-1];}
+  const milestones = [
+    {height:3000,name:"ACIMA DAS NUVENS",reward:50},
+    {height:7000,name:"LIMITE DA ATMOSFERA",reward:90},
+    {height:12000,name:"ÓRBITA BAIXA",reward:130},
+    {height:19000,name:"ROTA DE TRANSFERÊNCIA",reward:180},
+    {height:28000,name:"ESPAÇO PROFUNDO",reward:260},
+    {height:38000,name:"CORREDOR TK–87",reward:360},
+    {height:48000,name:"ALTITUDE DE INTERCEPTAÇÃO",reward:500},
+  ];
+  function supplies(height) {
+    const p=Math.max(0,Math.min(1,height/48000));
+    return {chance:.84*Math.exp(-p*2.4),fuelWeight:.42*(1-p)+.10*p,repairWeight:.13*(1-p)+.05*p,spread:460+220*p};
+  }
   const contracts = [
+    {id:"arcade_memory",name:"UM CRÉDITO. OUTRA GALÁXIA.",text:"Encontre um sinal perdido do Arcade Zone.",kind:"relic",target:1,reward:87},
     {
       id: "first",
       name: "PRIMEIRO CONTATO",
@@ -142,18 +163,18 @@
     },
     {
       id: "transit",
-      name: "JANELA TRANSLUNAR",
+      name: "VETOR DE INTERCEPTAÇÃO",
       text: "Alcance a rota de transferência.",
       kind: "height",
       target: 15000,
       reward: 750,
     },
     {
-      id: "moon",
-      name: "UM LUGAR NA LUA",
-      text: "Conclua a chegada lunar assistida.",
-      kind: "height",
-      target: 48000,
+      id: "takedown",
+      name: "TERRA A SALVO",
+      text: "Alcance 48 km e conclua a sequência de interceptação.",
+      kind: "intercept",
+      target: 1,
       reward: 2500,
     },
   ];
@@ -184,7 +205,7 @@
     },
     {
       from: 16000,
-      name: "04 / ROTA TRANSLUNAR",
+      name: "04 / VETOR DE INTERCEPTAÇÃO",
       short: "ESPAÇO PROFUNDO",
       top: "#0b1534",
       bottom: "#252b55",
@@ -192,8 +213,8 @@
     },
     {
       from: 40000,
-      name: "05 / APROXIMAÇÃO SELENE",
-      short: "CHEGADA LUNAR",
+      name: "05 / AMEAÇA TK–87",
+      short: "INTERCEPTAÇÃO",
       top: "#111936",
       bottom: "#343556",
       accent: "#efd8ad",
@@ -206,7 +227,7 @@
       fuel: 17 + l("tank") * 10,
       burn: 0.95 - l("efficiency") * 0.075,
       booster: 2.5 + l("booster") * 2.2,
-      boostThrust: 28 + l("booster") * 4.5,
+      boostThrust: 26 + l("booster") * 4,
       health: 65 + l("hull") * 22,
       armor: 1 - l("hull") * 0.065,
       control: 2.1 + l("stability") * 0.38,
@@ -214,7 +235,7 @@
       magnet: 38 + l("magnet") * 18,
       shield: l("shield") * 15,
       shieldRegen: 0.8 + l("shield") * 0.4,
-      maxSpeed: 145 + l("engine") * 25,
+      maxSpeed: 130 + l("engine") * 18,
     };
   }
   function cost(id, level) {
@@ -265,15 +286,19 @@
       [-30, 13, 15, 7],
       [30, 13, 15, 7],
     ],
+    deepSatellite: [[0,0,20,34],[-53,-22,25,17],[53,-22,25,17],[-53,23,25,17],[53,23,25,17],[0,-52,26,16]],
+    mothership: [[0,1,94,24],[0,-24,51,23],[-83,7,25,18],[83,7,25,18]],
     ufo: [
       [0, 8, 47, 13],
       [0, -10, 23, 17],
     ],
   };
   root.SeleneData = {
+    target(f) { return {x: Math.sin(f.time * .09) * 210, y:49800, r:105}; },
+    milestones, supplies, fuelGrades, fuelTierAt, fuelGrade, finaleDuration:42,
     upgrades,
     obstacleShapes,
-    contracts,
+    contracts: [...contracts, ...milestones.map(m=>({id:"route_"+m.height,name:m.name,text:"Alcance "+(m.height/1000)+" km.",kind:"height",target:m.height,reward:m.reward}))],
     zones,
     stats,
     cost,

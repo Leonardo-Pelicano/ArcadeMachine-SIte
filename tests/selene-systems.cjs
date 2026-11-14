@@ -72,13 +72,14 @@ const shop = P.fresh();
 shop.money = 5000;
 assert(P.purchase(shop, "engine", 4).ok);
 const cash = shop.money;
-assert(P.equip(shop, "engine", 1).ok);
-assert.equal(shop.levels.engine, 1);
+assert(!P.equip(shop, "engine", 1).ok);
+assert(P.equip(shop, "engine", 0).ok);
+assert.equal(shop.levels.engine, 0);
 assert.equal(shop.money, cash);
 assert.equal(P.ownedLevel(shop, "engine"), 4);
 assert(
-  !P.purchase(shop, "engine", 3).ok,
-  "owned lower tiers cannot be charged again",
+  !P.purchase(shop, "engine", 4).ok,
+  "the same model cannot be charged again",
 );
 assert(!P.equip(shop, "engine", 5).ok);
 assert(P.equip(shop, "engine", 4).ok);

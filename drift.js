@@ -691,6 +691,7 @@
     $("#driftItem").disabled = !item || race.phase !== "racing" || paused;
     $("#driftItemIcon").textContent = item ? item.short : "—";
     $("#driftItemName").textContent = item ? item.name : "SEM ITEM";
+    $("#driftDesktopItem").textContent = item ? item.short + " · " + item.name + " · ESPAÇO / E" : "SEM ITEM · COLETE UM CRISTAL";
     $("#driftItem").style.setProperty("--item", item?.color || "#71869d");
     $("#driftItem").setAttribute(
       "aria-label",
@@ -735,11 +736,11 @@
       const direction =
         (keys.ArrowRight || keys.d || keys.D ? 1 : 0) -
         (keys.ArrowLeft || keys.a || keys.A ? 1 : 0);
-      if (direction || race.controlMode === "keyboard")
+      if (direction || !window.TouchArcade?.enabled || race.controlMode === "keyboard")
         race.setSteer(direction);
       race.input.drift = heldDrift || mouseDrift || !!keys.Shift;
       race.input.brake = heldBrake || !!keys.ArrowDown || !!keys.s || !!keys.S;
-      race.input.throttle=matchMedia('(pointer:coarse)').matches?1:(keys.w||keys.W||keys.ArrowUp?1:0);
+      race.input.throttle=window.TouchArcade?.enabled?1:(keys.w||keys.W||keys.ArrowUp?1:0);
       accumulator += dt;
       let steps = 0;
       while (accumulator >= 1 / 60 && steps++ < 8) {
@@ -801,19 +802,6 @@
   $("#driftAbandon").onclick = garage;
   for (const b of document.querySelectorAll("[data-drift-mode]"))
     b.onclick = () => setMode(b.dataset.driftMode);
-  canvas.addEventListener("pointermove", (e) => {
-    if (
-      !active ||
-      screen !== "race" ||
-      paused ||
-      e.pointerType !== "mouse" ||
-      !e.buttons ||
-      race.controlMode === "keyboard"
-    )
-      return;
-    const rect = canvas.getBoundingClientRect();
-    race.setTarget(((e.clientX - rect.left) / rect.width - 0.5) * 2.5);
-  });
   // Holding the left mouse button over the arena/pad also holds drift.
   for (const surface of [
     canvas,

@@ -685,38 +685,15 @@
     }
     g.fillStyle = "#626e67";
     g.fillRect(0, h * 0.84, w, h * 0.16);
-    // The view out of the round observatory window and a chalk plan.
-    const wx = w * 0.76,
-      wy = h * 0.3;
-    ellipse(
-      g,
-      wx,
-      wy,
-      Math.min(w, h) * 0.2,
-      Math.min(w, h) * 0.2,
-      "#2f5b78",
-      ink,
-      7,
-    );
-    moon(g, wx + 22, wy - 8, Math.min(w, h) * 0.11);
-    line(
-      g,
-      [
-        [wx - 90, wy],
-        [wx + 90, wy],
-      ],
-      "#829b96",
-      4,
-    );
-    line(
-      g,
-      [
-        [wx, wy - 90],
-        [wx, wy + 90],
-      ],
-      "#829b96",
-      4,
-    );
+    // Recessed observatory glass: all sky, tails and reflections stay inside the frame.
+    const wx=w*.76,wy=h*.3,wr=Math.min(w,h)*.2;
+    g.save();g.beginPath();g.arc(wx,wy,wr,0,Math.PI*2);g.clip();
+    const sky=g.createLinearGradient(0,wy-wr,0,wy+wr);sky.addColorStop(0,"#102439");sky.addColorStop(1,"#426879");g.fillStyle=sky;g.fillRect(wx-wr,wy-wr,wr*2,wr*2);
+    for(let i=0;i<28;i++){g.fillStyle=i%4?"#cfdfd0":"#9ed8de";g.fillRect(wx-wr+((i*37)%97)/97*wr*2,wy-wr+((i*53)%89)/89*wr*2,1.3,1.3);}
+    A.threat(g,wx+wr*.18,wy+wr*.1,wr*.44,t);
+    line(g,[[wx-wr*.7,wy-wr*.4],[wx-wr*.25,wy-wr*.85]],"#d3e4dd40",wr*.13);
+    g.restore();ellipse(g,wx,wy,wr+3,wr+3,null,"#223e4d",8);ellipse(g,wx,wy,wr+8,wr+8,null,"#789794",4);
+    for(let i=0;i<8;i++){const a=i*Math.PI/4;ellipse(g,wx+Math.cos(a)*(wr+8),wy+Math.sin(a)*(wr+8),2,2,"#b8c9b5",null);}
     g.save();
     g.translate(w * 0.52, h * 0.23);
     g.rotate(-0.055);
@@ -732,7 +709,7 @@
       "#c5e0b8",
       2,
     );
-    text(g, "TERRA → LUA", -68, -38, 14, "#e5e7bf");
+    text(g, "ALVO: TK–87", -68, -38, 14, "#e5e7bf");
     text(g, "P = ?!  F = UAU", -65, 51, 12, "#b9d8b4");
     g.restore();
     box(g, w * 0.06, h * 0.13, w * 0.22, 14, "#637e72", ink, 1);
@@ -922,13 +899,16 @@
     A.flask(g, w * 0.86, h * 0.8 - 11, 0.7, "#a5c6a0");
   }
   function pickup(g, o, t) {
+    if(o.type==="arcadeRelic"){g.save();g.translate(o.x,o.y);A.arcadeRelic(g,o,t);g.restore();return;}
     g.save();
     g.translate(o.x, o.y + Math.sin(t * 2 + (o.phase || 0)) * 1.2);
     g.lineJoin = "round";
     g.lineCap = "round";
+    const grade=o.type==="fuel"?D.fuelGrade(o):null;
+    if(grade)g.scale(grade.scale,grade.scale);
     const colors = {
       cash: "#e6bf59",
-      fuel: "#d67a60",
+      fuel: grade?.color || "#d67a60",
       repair: "#c6dfbb",
       aux: "#91c9dd",
       shield: "#8ed9dc",
@@ -970,10 +950,10 @@
       shape(
         g,
         [
-          [3, -14],
+          [3, -9],
           [5, -23],
           [14, -21],
-          [12, -14],
+          [12, -9],
         ],
         "#6f7c79",
         ink,
@@ -982,8 +962,8 @@
       box(g, -12, -17, 13, 8, "#ad5743", ink, 2, 1.5);
       box(g, -9, -15, 7, 4, "#dfe2be", ink, 1);
       const red = g.createLinearGradient(-14, -9, 13, 13);
-      red.addColorStop(0, "#de9070");
-      red.addColorStop(1, "#a74e42");
+      red.addColorStop(0, grade.tier===3?"#a9dbe1":grade.tier===2?"#e7ca7b":"#de9070");
+      red.addColorStop(1, grade.tier===3?"#386c85":grade.tier===2?"#a57a3e":"#a74e42");
       box(g, -14, -10, 28, 29, red, ink, 4, 1.8);
       line(
         g,
@@ -1015,6 +995,11 @@
         "#793e38",
         1,
       );
+      if(grade.tier>1){
+        line(g,[[-14,-1],[-14,15],[14,15],[14,-1]],"#d7ddc7",1.5);
+        box(g,-9,10,18,8,"#244252",ink,1,.6);
+        g.save();g.textAlign="center";text(g,grade.tag,0,16,6.5,"#f5e6b5",'"Space Mono",monospace');g.restore();
+      }
     } else if (o.type === "repair") {
       box(g, -7, -20, 14, 10, "#7d9a89", ink, 3, 1.5);
       box(g, -4, -18, 8, 6, "#dbe9d2", null, 1);
@@ -1444,11 +1429,15 @@
       return { w: logical, h: (logical * h) / w };
     }
     effect(e, f) {
+      if(e.type==="feathers")for(let i=0;i<44;i++){
+        const angle=Math.random()*TAU,speed=45+Math.random()*130;
+        this.particles.push({x:e.x,y:e.y,vx:Math.cos(angle)*speed+(e.vx||0)*.16,vy:Math.sin(angle)*speed+(e.vy||0)*.12,life:1.8+Math.random()*1.5,initial:3.3,size:3+Math.random()*4,color:["#dbe3df","#9fb5bf","#eff0dc","#6b8596"][i%4],angle,spin:Math.random()*5-2.5,feather:true,phase:Math.random()*6});
+      }
       if (["hit", "collision", "destroy", "lightning"].includes(e.type)) {
         this.shake =
           e.type === "destroy" ? 1 : 0.35 + Math.min(0.5, (e.force || 0) / 180);
         const number =
-          e.type === "destroy" ? 36 : e.type === "collision" ? 20 : 8;
+          e.kind==="bird"?0:e.type === "destroy" ? 36 : e.type === "collision" ? 20 : 8;
         for (let i = 0; i < number; i++) {
           const a = Math.random() * TAU,
             v = 30 + Math.random() * 90;
@@ -1465,7 +1454,7 @@
               ? ["#a59a84", "#74837e", "#d7c4a0"]
               : e.kind === "balloon"
                 ? ["#dfba7b", "#bc795b", "#b49a71"]
-                : e.kind === "satellite"
+                : ["satellite","deepSatellite","mothership"].includes(e.kind)
                   ? ["#829faa", "#d3bd83", "#d6ddbd"]
                   : ["#d3c39a", "#e39556", "#96b4ac"])[i % 3],
             size: 2 + Math.random() * 5,
@@ -1486,8 +1475,9 @@
           x: e.x,
           y: e.y,
           text: {
+            arcadeRelic:"MEMÓRIA: ARCADE ZONE",
             cash: "+$" + e.amount,
-            fuel: "+COMBUSTÍVEL",
+            fuel: Number.isFinite(e.fuelAdded)?(e.fuelAdded>0?"+"+e.fuelAdded.toLocaleString("pt-BR",{maximumFractionDigits:1})+" L"+(e.fuelTier>1?" · "+(e.fuelTier===3?"XL":"G"):""):"TANQUE CHEIO"):"+COMBUSTÍVEL",
             repair: "+CASCO",
             aux: "+PROPULSOR",
             shield: "+ESCUDO",
@@ -1538,6 +1528,7 @@
         );
         return;
       }
+      if(f && (f.approach>0 || f.win)){root.SeleneFinale.draw(g,w,h,f.win?D.finaleDuration:f.approach,f.levels,f.win);return;}
       if (!f) {
         hangar(g, w, h, t, p, options);
         return;
@@ -1579,66 +1570,29 @@
       }
       if (alt > 6500)
         A.earth(g, w * 0.17, h * 0.85, Math.max(55, 150 - alt * 0.002), t);
-      moon(g, w * 0.82, h * 0.17, 22 + Math.min(1, alt / D.goal) ** 4 * 85);
-      if (f.approach > 0 || f.win) {
-        moon(g, w * 0.5, h + 310, 440);
-        rocket(
-          g,
-          w * 0.5,
-          h * 0.64 + Math.min(1, f.approach / 3.5) * 35,
-          1.6,
-          0,
-          p.levels,
-          t,
-          f.approach < 2,
-          false,
-          0,
-          true,
-        );
-        if (f.win) {
-          line(
-            g,
-            [
-              [w * 0.62, h * 0.77],
-              [w * 0.62, h * 0.48],
-            ],
-            "#e4dcbd",
-            3,
-          );
-          shape(
-            g,
-            [
-              [w * 0.62, h * 0.48],
-              [w * 0.73, h * 0.51],
-              [w * 0.62, h * 0.6],
-            ],
-            "#c35e55",
-          );
-          g.textAlign = "center";
-          text(
-            g,
-            "UM PELICANO NA LUA!",
-            w / 2,
-            h * 0.3,
-            Math.min(40, w * 0.065),
-            "#f1e6b5",
-            '"Barlow Condensed",sans-serif',
-          );
-          g.textAlign = "left";
-        }
-        return;
-      }
-      const desired = clamp(1.15 - Math.abs(f.vy) * 0.0022, 0.48, 1.1);
-      this.scale += (desired - this.scale) * Math.min(1, dt * 3);
+      // One shared, viewport-based scale. Acceleration never zooms the world away.
+      const desired = clamp(Math.min(w / 760, h / 650), .45, .72);
+      this.scale = desired;
       this.anchorMix +=
-        ((f.vy < -15 ? 1 : 0) - this.anchorMix) * Math.min(1, dt * 5);
+        (clamp(-f.vy / 120,0,1) - this.anchorMix) * (1-Math.exp(-dt*1.8));
       const scale = this.scale,
-        anchor = h * (0.64 - 0.22 * this.anchorMix),
+        anchor = h * (0.64 - 0.12 * this.anchorMix),
         cameraX = f.x * 0.87,
         world = (x, y) => ({
           x: w * 0.45 + (x - cameraX) * scale,
           y: anchor - (y - f.y) * scale,
         });
+      const objective = D.target(f), aim = world(objective.x,objective.y);
+      if (aim.y > -240 && aim.y < h+240) {
+        A.threat(g,aim.x,aim.y,objective.r*scale,t);
+        g.save(); g.strokeStyle="#f7c781";g.lineWidth=1.5;g.setLineDash([5,7]);
+        g.beginPath();g.arc(aim.x,aim.y,(objective.r+24)*scale,0,Math.PI*2);g.stroke();g.setLineDash([]);
+        g.textAlign="center";text(g,"INTERCEPTAÇÃO AUTOMÁTICA · 48 KM",aim.x,aim.y+(objective.r+48)*scale,Math.min(12,w*.025),"#ffe1a1");g.restore();
+      } else {
+        const bx=clamp(aim.x,75,w-75), by=aim.y<0?24:h-35;
+        g.save();g.textAlign="center";
+        text(g,(aim.y<0?"▲ ":"▼ ")+"OBJETIVO: 48 KM",bx,by,11,"#f6d79b");g.restore();
+      }
       // The platform top is world y=0, shared with the fins at launchY=42.
       const padY = world(0, 0).y;
       this.padPose = { x: world(0, 0).x, y: padY };
@@ -1686,22 +1640,42 @@
             1 + (0.55 - o.collected) * 1.3,
           );
         }
-        if (o.kind === "pickup") pickup(g, { ...o, x: 0, y: 0 }, t);
+        if (o.kind === "pickup") {
+          // Enlarge the illustrated supplies to match the larger collection radius.
+          g.save(); g.scale(1.2,1.2); pickup(g,{...o,fuelTier:o.type==="fuel"?D.fuelGrade(o).tier:0,x:0,y:0},t); g.restore();
+          if(!o.hit && ["fuel","repair"].includes(o.type)) {
+            g.strokeStyle=o.type==="fuel"?"#ffd09a":"#c7f5ae";g.lineWidth=1.5/scale;
+            g.beginPath();g.arc(0,0,32*(o.type==="fuel"?D.fuelGrade(o).scale:1)+Math.sin(t*3+(o.phase||0))*2,0,Math.PI*2);g.stroke();
+          }
+        }
         else if (o.kind === "gate") A.gate(g, o, t);
         else obstacle(g, { ...o, x: 0, y: 0 }, t);
         g.restore();
       }
+      for (const type of ["fuel","repair"]) {
+        const nearest=f.objects.filter(o=>o.kind==="pickup" && o.type===type && !o.hit && Math.abs(o.y-f.y)<550)
+          .sort((a,b)=>Math.hypot(a.x-f.x,a.y-f.y)-Math.hypot(b.x-f.x,b.y-f.y))[0];
+        if(!nearest)continue;
+        const hint=world(nearest.x,nearest.y), visible=hint.x>38&&hint.x<w-75&&hint.y>30&&hint.y<h-40;
+        const x=visible?hint.x:clamp(hint.x,65,w-115),y=visible?hint.y+35*scale*(type==="fuel"?D.fuelGrade(nearest).scale:1):clamp(hint.y,160,h-115);
+        const arrow=visible?"":hint.x<38?"◀ ":hint.x>w-75?"▶ ":hint.y<30?"▲ ":"▼ ";
+        const hintFont=w<600?11:12;
+        g.save();g.textAlign="center";g.font="bold "+hintFont+"px sans-serif";g.lineWidth=3;g.strokeStyle="#132c3c";
+        const label=arrow+(type==="fuel"?"COMBUSTÍVEL"+(D.fuelGrade(nearest).tier>1?" "+D.fuelGrade(nearest).tag:""):"REPARO");g.strokeText(label,x,y);text(g,label,x,y,hintFont,type==="fuel"?"#ffdda3":"#d0f7af");g.restore();
+      }
       this.particles = this.particles.filter((a) => (a.life -= dt) > 0);
       for (const a of this.particles) {
+        if(a.feather){a.vx*=Math.exp(-dt*.75);a.vy+=(-22-a.vy)*Math.min(1,dt*1.1);}
         a.x += a.vx * dt;
         a.y += a.vy * dt;
-        a.vy -= 25 * dt;
+        if(!a.feather)a.vy -= 25 * dt;
         a.angle = (a.angle || 0) + (a.spin || 0) * dt;
         const q = world(a.x, a.y);
         g.save();
         g.translate(q.x, q.y);
-        g.rotate(a.angle || 0);
+        g.rotate((a.angle || 0)+(a.feather?Math.sin(t*5+a.phase)*.5:0));
         g.globalAlpha = Math.min(1, a.life * 2);
+        if(a.feather){A.feather(g,0,0,a.size,a.color);g.restore();continue;}
         box(
           g,
           -a.size / 2,
@@ -1716,7 +1690,7 @@
         g.restore();
       }
       const q = world(f.x, f.y);
-      const spriteScale = alt < 200 ? scale : Math.max(0.75, scale);
+      const spriteScale = scale;
       this.pose = { ...q, w, h, spriteScale };
       this.shake = Math.max(0, this.shake - dt * 1.8);
       const shake = Math.sin(t * 73) * this.shake * 5;
@@ -1784,7 +1758,7 @@
     g.fillStyle = grad;
     g.fillRect(0, 0, w, h);
     clouds(g, w, h, t, 0);
-    moon(g, w * 0.83, h * 0.24, h * 0.14);
+    A.threat(g, w * 0.83, h * 0.24, h * 0.14, t);
     rocket(
       g,
       w * 0.56,
