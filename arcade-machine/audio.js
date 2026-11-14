@@ -1,0 +1,14 @@
+/* CC0 audio, local files, pooled effects and separate music / master switches. */
+(function(){'use strict';
+const files={menu:'assets/audio/menu.mp3',arcade:'assets/audio/arcade.mp3',pilot:'assets/audio/pilot.mp3',laser:'assets/audio/laser.mp3',explosion:'assets/audio/explosion.mp3',hit:'assets/audio/hit.mp3',electric:'assets/audio/electric.mp3',warp:'assets/audio/warp.mp3',prism:'assets/audio/prism.mp3',laugh:'assets/audio/laugh.mp3',laughFinal:'assets/audio/laugh-final.mp3',bossLaser:'assets/audio/boss-laser.mp3',enemyLaser:'assets/audio/enemy-laser.mp3',gameover:'assets/audio/gameover.mp3'};
+const tracks={},pools={},indexes={},counts={};let current=null,unlocked=false,muted=false,musicEnabled=true,lastTick=0;
+function audio(src,loop){const a=new Audio(src);a.preload='auto';a.loop=!!loop;return a}
+function prepare(){if(unlocked)return;unlocked=true;for(const name of ['menu','arcade','pilot','prism'])tracks[name]={audio:audio(files[name],true),gain:0,target:0};for(const name of ['laser','explosion','hit','electric','warp','laugh','laughFinal','bossLaser','enemyLaser','gameover']){pools[name]=Array.from({length:name==='laser'?8:3},()=>audio(files[name],false));indexes[name]=0}}
+function music(name){prepare();if(current===name){if(name&&musicEnabled&&!muted)tracks[name].audio.play().catch(()=>{});return}current=name;for(const [key,t] of Object.entries(tracks)){t.target=key===name?.24:0;if(key===name){t.audio.volume=0;t.audio.play().catch(()=>{})}}}
+function effect(name,volume=.3){prepare();if(muted||!pools[name])return;const a=pools[name][indexes[name]++%pools[name].length];a.currentTime=0;a.volume=Math.max(0,Math.min(1,volume));a.play().catch(()=>{});counts[name]=(counts[name]||0)+1}
+function tick(ms){requestAnimationFrame(tick);if(ms-lastTick<40)return;lastTick=ms;for(const t of Object.values(tracks)){t.gain+=(t.target-t.gain)*.14;t.audio.volume=(muted||!musicEnabled||document.hidden)?0:t.gain;if(t.target===0&&t.gain<.002&&!t.audio.paused){t.audio.pause();t.audio.currentTime=0}}}
+requestAnimationFrame(tick);
+function setMuted(value){muted=!!value;if(muted)for(const pool of Object.values(pools))for(const a of pool)a.pause();else if(current)tracks[current].audio.play().catch(()=>{})}
+function toggleMusic(){musicEnabled=!musicEnabled;if(!unlocked)prepare();if(!current)music('menu');else if(musicEnabled&&!muted)tracks[current].audio.play().catch(()=>{});return musicEnabled}
+window.ArcadeAudio={stopEffects(){for(const pool of Object.values(pools))for(const a of pool){a.pause();a.currentTime=0}},prepare,music,effect,setMuted,toggleMusic,get state(){return {current,unlocked,muted,musicEnabled,counts:{...counts},playing:current?(!tracks[current].audio.paused&&tracks[current].audio.volume>0):false,effectsReady:Object.fromEntries(Object.entries(pools).map(([name,pool])=>[name,pool[0].readyState])),ready:current?tracks[current].audio.readyState:0}}};
+})();
