@@ -21,17 +21,28 @@ const bosses=[
  {name:'ECLIPSE · PULSAR',hp:350,color:'#d493ff'}
 ];
 function voice(key,volume=.13){window.ArcadeAudio.effect(key,volume);}
-function initEnemy(e,kind){const t=types[kind]||types.scout;e.kind=kind in types?kind:'scout';e.color=t.color;e.hp=e.maxHp=t.hp+(gameDifficulty.key==='hard'&&level>6?1:0);e.w=kind==='carrier'?40:kind==='bomber'?34:28;e.h=kind==='carrier'?30:25;e.fireAt=arcadeClock+1400+Math.random()*t.reload;e.spawned=0;e.phase=Math.random()*TAU;return e;}
-function bolt(x,y,angle,speed,color,shape='bolt',extra={}){if(enemyShots.length>=155)return;enemyShots.push({x,y,vx:Math.cos(angle)*speed,v:Math.sin(angle)*speed,w:shape==='orb'?12:7,h:shape==='orb'?12:16,color,shape,age:0,...extra});}
+// Normal formations share an attack rhythm; boss encounters keep their original budget.
+const waveBalance={easy:{cap:12,gap:650,reload:1.65,burst:2,mine:3},normal:{cap:22,gap:360,reload:1.35,burst:3,mine:4},hard:{cap:36,gap:200,reload:1.15,burst:4,mine:6}};
+let waveLevel=0,lastWaveVolley=-Infinity;
+function waveSettings(){return waveBalance[gameDifficulty.key]||waveBalance.normal;}
+function bossActive(){return enemies.some(e=>e.alive&&e.boss);}
+function shotLimit(){return bossActive()?155:waveSettings().cap;}
+function initEnemy(e,kind){const t=types[kind]||types.scout;e.kind=kind in types?kind:'scout';e.color=t.color;e.hp=e.maxHp=t.hp+(gameDifficulty.key==='hard'&&level>6?1:0);e.w=kind==='carrier'?40:kind==='bomber'?34:28;e.h=kind==='carrier'?30:25;e.fireAt=arcadeClock+(1800+Math.random()*t.reload)*gameDifficulty.enemyRate;e.spawned=0;e.phase=Math.random()*TAU;return e;}
+function bolt(x,y,angle,speed,color,shape='bolt',extra={}){if(enemyShots.length>=shotLimit())return;enemyShots.push({x,y,vx:Math.cos(angle)*speed,v:Math.sin(angle)*speed,w:shape==='orb'?12:7,h:shape==='orb'?12:16,color,shape,age:0,...extra});}
 function aimed(e,count=1,spread=.15,speed=200,color=e.color,shape='bolt',extra={}){const a=Math.atan2(player.y-e.y,player.x-e.x);for(let i=0;i<count;i++)bolt(e.x,e.y+18,a+(i-(count-1)/2)*spread,speed,color,shape,extra);}
 function ring(e,count,speed,color,offset=0,gapAngle=null){for(let i=0;i<count;i++){const a=i/count*TAU+offset;if(gapAngle!==null&&Math.abs(Math.atan2(Math.sin(a-gapAngle),Math.cos(a-gapAngle)))<.33)continue;bolt(e.x,e.y,a,speed,color,'orb');}}
 function mine(x,y,color,delay=1.7){bolt(x,y,Math.PI/2,26,color,'mine',{arm:delay,harmless:true,ttl:delay});}
-function updateEnemies(dt,now){for(const e of enemies){if(!e.alive||e.boss)continue;const t=types[e.kind]||types.scout;
+function updateEnemies(dt,now){const bossFight=bossActive(),balance=waveSettings();
+ if(waveLevel!==level||now<lastWaveVolley){waveLevel=level;lastWaveVolley=-Infinity;}
+ for(const e of enemies){if(!e.alive||e.boss)continue;const t=types[e.kind]||types.scout;
  if(e.kind==='phantom'&&now>=(e.phaseAt||0)){e.phaseAt=now+2400;e.targetX=C(player.x+(Math.random()-.5)*310,65,755);e.targetY=70+Math.random()*100;}
- if(e.lock&&now>=e.lock.fireAt){bolt(e.x,e.y,e.lock.angle,t.speed,t.color,'needle');e.lock=null;voice('shot_sniper',.17);}
- if(now<e.fireAt)continue;e.fireAt=now+(t.reload+Math.random()*1000)*gameDifficulty.enemyRate;
+ if(e.lock&&now>=e.lock.fireAt){if(!bossFight&&(now-lastWaveVolley<balance.gap||enemyShots.length>=balance.cap))continue;bolt(e.x,e.y,e.lock.angle,t.speed,t.color,'needle');e.lock=null;voice('shot_sniper',.17);if(!bossFight)lastWaveVolley=now;}
+ if(!bossFight&&(now-lastWaveVolley<balance.gap||enemyShots.length>=balance.cap))continue;
+ if(now<e.fireAt)continue;e.fireAt=now+(t.reload+Math.random()*1000)*gameDifficulty.enemyRate*(bossFight?1:balance.reload);
+ if(!bossFight)lastWaveVolley=now;
+ const burst=n=>bossFight?n:Math.min(n,balance.burst);
  switch(e.kind){
- case 'striker':aimed(e,3,.13,t.speed,t.color,'dart');break;
+ case 'striker':aimed(e,burst(3),.13,t.speed,t.color,'dart');break;
  case 'armor':aimed(e,2,.3,t.speed,t.color,'orb');break;
  case 'prism':aimed(e,2,.45,t.speed,t.color,'diamond',{bounces:1});break;
  case 'sniper':e.lock={angle:Math.atan2(player.y-e.y,player.x-e.x),fireAt:now+1100};break;
@@ -39,7 +50,7 @@ function updateEnemies(dt,now){for(const e of enemies){if(!e.alive||e.boss)conti
  case 'bomber':mine(e.x,C(e.y+85,100,300),t.color);break;
  case 'splitter':aimed(e,1,0,t.speed,t.color,'split',{splitAt:.85});break;
  case 'phantom':aimed(e,2,.25,t.speed,t.color,'comet',{turn:.45});break;
- case 'carrier':aimed(e,4,.16,t.speed,t.color,'cross');if(e.spawned<2&&enemies.filter(x=>x.alive&&!x.boss).length<23){e.spawned++;spawnEnemy(e.x+(e.spawned%2?30:-30),e.y+32);initEnemy(enemies.at(-1),'scout');}break;
+ case 'carrier':aimed(e,burst(4),.16,t.speed,t.color,'cross');if(e.spawned<2&&enemies.filter(x=>x.alive&&!x.boss).length<23){e.spawned++;spawnEnemy(e.x+(e.spawned%2?30:-30),e.y+32);initEnemy(enemies.at(-1),'scout');}break;
  default:aimed(e,1,0,t.speed,t.color);
  }
  if(e.kind!=='sniper')voice('shot_'+e.kind,.09);
@@ -49,8 +60,8 @@ function updateShots(dt){const extra=[];for(const s of enemyShots){s.age=(s.age|
  if(s.turn){const target=Math.atan2(player.y-s.y,player.x-s.x),a=Math.atan2(s.v,s.vx),delta=Math.atan2(Math.sin(target-a),Math.cos(target-a)),next=a+C(delta,-s.turn*dt,s.turn*dt),speed=Math.hypot(s.v,s.vx);s.vx=Math.cos(next)*speed;s.v=Math.sin(next)*speed;}
  if(s.bounces>0&&(s.x<12||s.x>808)){s.x=C(s.x,12,808);s.vx*=-1;s.bounces--;}
  if(s.splitAt&&s.age>=s.splitAt){s.spent=true;const a=Math.atan2(s.v,s.vx);for(const off of [-.34,.34])extra.push({x:s.x,y:s.y,vx:Math.cos(a+off)*210,v:Math.sin(a+off)*210,w:7,h:16,color:s.color,shape:'dart',age:0});}
- if(s.shape==='mine'&&s.age>=s.ttl){s.spent=true;for(let i=0;i<6;i++){const a=i/6*TAU;extra.push({x:s.x,y:s.y,vx:Math.cos(a)*145,v:Math.sin(a)*145,w:7,h:12,color:s.color,shape:'orb',age:0});}window.GameFX.particles(arcadeParticles,s.x,s.y,s.color,12);}
- }enemyShots=enemyShots.filter(s=>!s.spent);enemyShots.push(...extra.slice(0,Math.max(0,155-enemyShots.length)));}
+ if(s.shape==='mine'&&s.age>=s.ttl){s.spent=true;for(let i=0,count=bossActive()?6:waveSettings().mine;i<count;i++){const a=i/count*TAU;extra.push({x:s.x,y:s.y,vx:Math.cos(a)*145,v:Math.sin(a)*145,w:7,h:12,color:s.color,shape:'orb',age:0});}window.GameFX.particles(arcadeParticles,s.x,s.y,s.color,12);}
+ }enemyShots=enemyShots.filter(s=>!s.spent);enemyShots.push(...extra.slice(0,Math.max(0,shotLimit()-enemyShots.length)));}
 function beam(b,now,horiz,pos,delay=0,warn=null){if(bossWarnings.length>=8)return;if(!horiz&&b.safeUntil>now&&Math.abs(pos-(82+b.safeLane*164))<65)return;const supernova=b.stage===2;
  const warning=warn??(supernova?(gameDifficulty.key==='easy'?1550:gameDifficulty.key==='hard'?850:1100):(gameDifficulty.key==='easy'?2100:gameDifficulty.key==='hard'?1100:1500));
  bossWarnings.push({horiz,pos:C(pos,40,horiz?480:780),start:now,fireAt:now+delay+warning,endAt:now+delay+warning+920,rise:120,hold:250,fade:550,color:b.color||bosses[(b.bossKind||1)-1].color,fired:false,lastCountdown:-1,volume:.13});}

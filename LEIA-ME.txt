@@ -45,3 +45,5 @@ V34 — ÁUDIO E ÍCONE
 O áudio do navegador usa um único AudioContext compartilhado (incluindo efeitos de motor e introdução), carrega e decodifica arquivos sob demanda, limita a doze efeitos simultâneos e mantém somente a faixa longa atual e o menu no cache de música. Não cria dezenas de elementos de áudio na entrada. No modo file:// ou sem WebAudio, usa reprodução alternativa com no máximo cinco elementos de mídia.
 No celular, a reprodução precisa de um toque por política do navegador. O botão mostra ATIVAR SOM antes da liberação. O primeiro toque/tecla de jogo ativa o áudio; SOM OFF permite silenciar. Suspensões do Safari podem exigir novo toque. Áudio sem interação prévia não é prometido.
 Ícone redesenhado como máquina de arcade roxa galáctica; Apple touch icon 180, ícones 192/512 e imagem maskable separada. Nomes de arquivo versionados para atualização do cache. Atalhos já instalados pelo iOS podem conservar a imagem antiga e precisar ser adicionados novamente.
+
+V35 — Fases normais de Arcade Zone com menos tiros simultâneos, intervalos entre salvas e minas mais leves no fácil/normal. Chefes preservados.
