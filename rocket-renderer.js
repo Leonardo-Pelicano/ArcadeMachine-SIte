@@ -1587,7 +1587,7 @@
         A.threat(g,aim.x,aim.y,objective.r*scale,t);
         g.save(); g.strokeStyle="#f7c781";g.lineWidth=1.5;g.setLineDash([5,7]);
         g.beginPath();g.arc(aim.x,aim.y,(objective.r+24)*scale,0,Math.PI*2);g.stroke();g.setLineDash([]);
-        g.textAlign="center";text(g,"INTERCEPTAÇÃO AUTOMÁTICA · 48 KM",aim.x,aim.y+(objective.r+48)*scale,Math.min(12,w*.025),"#ffe1a1");g.restore();
+        g.textAlign="center";text(g,"INTERCEPTAÇÃO AUTOMÁTICA · "+(D.goal/1000)+" KM",aim.x,aim.y+(objective.r+48)*scale,Math.min(12,w*.025),"#ffe1a1");g.restore();
       } else {
         const bx=clamp(aim.x,75,w-75), by=aim.y<0?24:h-35;
         g.save();g.textAlign="center";

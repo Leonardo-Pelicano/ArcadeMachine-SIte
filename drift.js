@@ -26,7 +26,7 @@
   const map = $("#driftMap"),
     mapCtx = map.getContext("2d");
   let saved = { car: 0, track: 0, records: {}, cups: {} };
-  const storageKey = "neon-drift-circuit87-v11";
+  const storageKey = "neon-drift-space-v30"+(window.ReleaseEdition.adm?"-adm":"");
   try {
     const current = localStorage.getItem(storageKey),
       previous = JSON.parse(
@@ -177,26 +177,7 @@
   function buildGarage() {
     const cars = $("#driftCars"),
       tracks = $("#driftTracks");
-    cars.innerHTML = D.cars
-      .map(
-        (c, i) =>
-          '<button type="button" class="drift-car-choice" data-car="' +
-          i +
-          '" aria-pressed="false" style="--car:' +
-          c.color +
-          '"><span class="car-swatch" aria-hidden="true"><svg viewBox="0 0 80 40"><path d="M8 28 13 18 26 15 33 7 51 7 61 16 72 19 76 28Z" fill="' +
-          c.color +
-          '"/><path d="m30 15 6-6h12l7 7Z" fill="#23435b"/><circle cx="22" cy="29" r="6" fill="#0f1e30"/><circle cx="63" cy="29" r="6" fill="#0f1e30"/><circle cx="22" cy="29" r="2.6" fill="#b0ccd3"/><circle cx="63" cy="29" r="2.6" fill="#b0ccd3"/></svg></span><b>' +
-          c.name +
-          "</b><small>" +
-          c.role +
-          "</small></button>",
-      )
-      .join("");
-    const formulaIcon = cars.querySelector('[data-car="5"] .car-swatch');
-    if (formulaIcon)
-      formulaIcon.innerHTML =
-        '<svg viewBox="0 0 80 40"><path fill="#f56867" d="M12 29V15h8l5 9h17l12 5h17v4H12z"/><path fill="#f56867" d="M26 24v-8l10-5 6 13Z"/><path d="M31 16h7v6h-8" fill="#20384b"/><path stroke="#d9e5e8" stroke-width="2" d="M30 22v-8h10l3 9"/><path fill="#f3ded0" d="M65 28h11v3H65zM7 12h16v3H7z"/><circle cx="20" cy="30" r="7" fill="#122130"/><circle cx="59" cy="30" r="7" fill="#122130"/><circle cx="20" cy="30" r="3" fill="#e3d8bd"/><circle cx="59" cy="30" r="3" fill="#e3d8bd"/></svg>';
+    cars.innerHTML=D.cars.map((c,i)=>`<button type="button" class="drift-car-choice" data-car="${i}" aria-pressed="false" style="--car:${c.color}"><span class="car-swatch" aria-hidden="true"><img src="assets/ship-${c.id}.png" alt="" width="480" height="280"></span><b>${c.name}</b><small>${c.role}</small></button>`).join('');
     tracks.innerHTML = D.tracks
       .map(
         (t, i) =>
@@ -324,6 +305,7 @@
     startRace(mode === "cup" ? 0 : trackIndex);
   }
   function startRace(index) {
+    releaseTouchSteering();
     mouseDrift = false;
     window.arcadeSound?.init();
     window.ArcadeAudio.prepare();
@@ -344,9 +326,9 @@
     modal.querySelector(".drift-shell").scrollTop = 0;
     $("#driftRaceName").textContent = D.tracks[index].name;
     $("#driftRound").textContent = cup
-      ? "CIRCUITO 87 · ETAPA " + (cup.round + 1) + "/" + D.tracks.length
+      ? "LIGA ORBITAL · ETAPA " + (cup.round + 1) + "/" + D.tracks.length
       : "CORRIDA AVULSA · " + profile.label;
-    $('#driftRaceHelp').textContent=matchMedia('(pointer:coarse)').matches?'Arraste para esterçar · aceleração automática · R reposiciona':'Segure W/↑ para acelerar · A/D ou ←/→ esterçam · S/↓ freia · Shift/clique: freio de mão · R reposiciona';
+    $('#driftRaceHelp').textContent=matchMedia('(pointer:coarse)').matches?'Segure esquerda/direita na pista · aceleração automática · assistência leve':'Segure W/↑ para acelerar · A/D ou ←/→ esterçam · S/↓ freia · Shift/clique: freio de mão · R reposiciona';
     $("#driftResume").textContent = "CONTINUAR CORRIDA";
     $("#driftPause").textContent = "PAUSAR Ⅱ";
     window.TouchArcade?.reset("drift", 410, 440);
@@ -467,8 +449,8 @@
     modal.querySelector(".drift-shell").scrollTop = 0;
     $("#driftResultEyebrow").textContent = cup
       ? cup.complete
-        ? "CIRCUITO 87 · CLASSIFICAÇÃO FINAL"
-        : "CIRCUITO 87 · ETAPA " + (cup.round + 1) + "/" + D.tracks.length
+        ? "LIGA ORBITAL · CLASSIFICAÇÃO FINAL"
+        : "LIGA ORBITAL · ETAPA " + (cup.round + 1) + "/" + D.tracks.length
       : "BANDEIRADA · " + race.track.name;
     const cupOrder = cup
       ? D.rivals
@@ -554,7 +536,7 @@
     $("#driftResultHint").textContent =
       cup && !cup.complete
         ? "ENTER avança para " + D.tracks[cup.round + 1].name
-        : "ENTER repete a disputa · GARAGEM para mudar carro ou pista";
+        : "ENTER repete a disputa · GARAGEM para mudar nave ou pista";
     $("#driftCupProgress").hidden = !cup || cup.complete;
     if (cup && !cup.complete)
       $("#driftCupProgress").textContent =
@@ -583,6 +565,7 @@
     return true;
   }
   function garage() {
+    releaseTouchSteering();
     engineStop();
     race = null;
     cup = null;
@@ -594,6 +577,7 @@
     window.ArcadeAudio.music("menu");
   }
   function pause(force) {
+    releaseTouchSteering();
     if (!active || screen !== "race" || !race || race.phase === "finished")
       return;
     mouseDrift = false;
@@ -736,8 +720,9 @@
       const direction =
         (keys.ArrowRight || keys.d || keys.D ? 1 : 0) -
         (keys.ArrowLeft || keys.a || keys.A ? 1 : 0);
-      if (direction || !window.TouchArcade?.enabled || race.controlMode === "keyboard")
-        race.setSteer(direction);
+      const mobile=!!window.TouchArcade?.enabled;
+      race.input.mobileAssist=mobile;
+      race.setSteer(mobile?touchTurn*.85:direction);
       race.input.drift = heldDrift || mouseDrift || !!keys.Shift;
       race.input.brake = heldBrake || !!keys.ArrowDown || !!keys.s || !!keys.S;
       race.input.throttle=window.TouchArcade?.enabled?1:(keys.w||keys.W||keys.ArrowUp?1:0);
@@ -756,6 +741,17 @@
     }
     view.render(race, ms / 1000, dt || 0.016);
   }
+  // Mobile steering is a held side of the arena, never a drag target.
+  const touchPointers=new Map();let touchTurn=0,touchOrder=0;
+  function updateTouchTurn(){const last=[...touchPointers.values()].sort((a,b)=>b.order-a.order)[0];touchTurn=last?.side||0;canvas.dataset.turn=String(touchTurn);}
+  function releaseTouchSteering(){touchPointers.clear();touchTurn=0;canvas.dataset.turn='0';if(race){race.setSteer(0);race.input.mobileAssist=false;}}
+  function sideAt(e){const rect=canvas.getBoundingClientRect();return e.clientX<rect.left+rect.width/2?-1:1;}
+  canvas.addEventListener('pointerdown',e=>{if(!['touch','pen'].includes(e.pointerType)||!active||screen!=='race'||paused||race?.phase==='finished')return;e.preventDefault();touchPointers.set(e.pointerId,{side:sideAt(e),order:++touchOrder});canvas.setPointerCapture(e.pointerId);updateTouchTurn();});
+  canvas.addEventListener('pointermove',e=>{const point=touchPointers.get(e.pointerId);if(!point)return;e.preventDefault();point.side=sideAt(e);updateTouchTurn();});
+  function finishTouch(e){if(!touchPointers.delete(e.pointerId))return;updateTouchTurn();if(canvas.hasPointerCapture(e.pointerId))canvas.releasePointerCapture(e.pointerId);}
+  for(const event of ['pointerup','pointercancel','lostpointercapture'])canvas.addEventListener(event,finishTouch);
+  window.addEventListener('blur',releaseTouchSteering);window.addEventListener('resize',releaseTouchSteering);document.addEventListener('visibilitychange',()=>{if(document.hidden)releaseTouchSteering();});
+  window.addEventListener('keydown',e=>{if(['KeyA','KeyD','ArrowLeft','ArrowRight'].includes(e.code))releaseTouchSteering();});
   let mouseDrift = false;
   let heldDrift = false,
     heldBrake = false;
@@ -907,6 +903,7 @@
       frame = requestAnimationFrame(loop);
     },
     close() {
+      releaseTouchSteering();
       active = false;
       mouseDrift = heldDrift = heldBrake = false;
       modal.style.display = "none";

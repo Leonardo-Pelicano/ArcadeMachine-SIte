@@ -1,0 +1,42 @@
+ARCADE MACHINE · SPACE EDITION V33 — EDIÇÃO DE LANÇAMENTO
+
+COMO JOGAR
+Extraia TODO o ZIP. Abra index.html no computador, ou publique todos os arquivos em um servidor HTTPS. Não abra apenas um HTML sem as pastas.
+Render: Static Site, Build Command: node scripts/verify-site.mjs ; Publish Directory: .
+render.yaml já está na raiz. Ao editar o projeto, rode node scripts/create-manifest.mjs antes de publicar.
+
+CINCO JOGOS
+ARCADE ZONE: 15 fases, seis formações/movimentos e cinco chefes. Chefes ganham vida e padrões; o Eclipse final possui transformação. WASD/setas movem, clique/espaço dispara, P pausa, F tela cheia, Enter reinicia após game over.
+CABINE DE PILOTAGEM: seis setores, cristais, portais e tempo mínimo de travessia. Setores avançados têm corredores de íons com aviso e contagem. Mouse/WASD/setas pilotam. Complete os três requisitos para avançar. P pausa; F tela cheia.
+PRISMA REACTOR: 12 câmaras, blocos móveis, blindados, voláteis, rebatedores e portais. Mouse/setas pilotam a plataforma; clique/espaço lança a esfera. P pausa; F tela cheia. A cada três câmaras, recupera uma vida até o limite da dificuldade.
+NEON DRIFT ORBITAL: oito circuitos espaciais e seis naves com geometrias distintas; sete rivais, itens e três voltas. W/seta cima acelera, S/seta baixo freia, A/D/setas viram, Shift ou mouse segurado faz drift; Espaço/E usa item; R reposiciona. Não há curva automática no computador. No celular, aceleração automática: segure a metade esquerda da pista para virar à esquerda e a direita para virar à direita. Solte para retornar a direção. Uma assistência leve suaviza a trajetória, sem pilotagem automática; é desligada no drift e em impactos. Freio, drift e item continuam em botões separados.
+PROJETO TAKE DOWN: campanha, oficina, dinheiro, combustível, marcos e interceptação a 48 km. Mouse aponta o foguete; clique segurado usa auxiliar; aproximar o cursor corta o motor. F tela cheia, P pausa. Homenagem baseada em Into Space!, de BarbarianGames: https://www.kongregate.com/en/games/barbariangames/intospace . Personagem Pelicano, missão, diálogos, arte e cena final desta versão são próprios.
+
+CELULAR
+Vire de lado para ter área de jogo e controles ao lado da tela. O arraste é relativo: tocar não teletransporta a nave para baixo do dedo. O shooter atira automaticamente no toque, em intervalos controlados.
+No foguete, HUD alterna detalhes; combustível, casco, auxiliar, altitude, renda e progresso seguem visíveis no modo compacto.
+iPhone: Safari > Compartilhar > Adicionar à Tela de Início. Ícone próprio, nome e janela de aplicativo estão configurados. Tela cheia nativa e bloqueio de orientação dependem do navegador; a alternativa em página e o aviso de rotação são mantidos.
+Android: instalar pelo Chrome quando oferecido. O service worker mantém o shell e ativos já visitados para uso sem rede; o ZIP contém todos os arquivos para jogo local. O primeiro carregamento e recursos ainda não usados podem exigir rede.
+
+DADOS
+Campanha do foguete continua no armazenamento local do navegador. Reinstalar/apagar dados do navegador pode apagar progresso. Não há conta nem placar online. A edição ADM usa campanha e recordes de corrida separados.
+
+ADM
+O ZIP ADM tem a mesma base, com data-edition=adm no HTML: vida infinita e hitkill em inimigos COMUNS; os cinco chefes recebem dano NORMAL. Pilotagem intangível; Prisma com regras públicas. Corrida: limite nominal ligeiramente acima do rival mais rápido. Foguete: rota 12 km, casco invulnerável, auxiliar reforçado, perfil novo com $50.000 e peças nível 4. Painel ADM troca de jogo, chama próximo chefe, reabastece e exibe o final. Não é autenticação nem uma área administrativa protegida.
+
+ARTE E LICENÇAS
+Modelos de naves, circuito procedural, sprites, ícones e interface desta edição foram produzidos para o projeto. Gabinete galáctico gerado com IA a partir da referência fornecida pelo autor do projeto. Mantenha os créditos dos terceiros incluídos:
+- Three.js: licença MIT em vendor/.
+- Juhani Junkala / SubspaceAudio: trilhas CC0, crédito e licença em assets/audio/.
+- Kenney: efeitos Sci-fi Sounds CC0, licença em assets/audio/.
+- AppPro: risada CC0. Fonte no diálogo de créditos e em assets/audio/CREDITS.md.
+- Fontes e licenças acompanham assets/.
+
+VERIFICAÇÃO
+Scripts clássicos executados individualmente em DOM simulado; campanhas pública e ADM, dano e imunidade de chefes, pausa, compras, retomada de voo, controle touch/mouse, HUD e progressão verificados. Geometria das seis naves e oito circuitos exercitada com renderizador CPU. Arte 2D renderizada em Canvas CPU. Sem navegador com GPU, Safari real ou celular físico disponível nesta sessão: validar nesses dispositivos antes de uma campanha de divulgação ampla. O pacote não afirma certificação de compatibilidade de todos os navegadores.
+
+V33 — SHOOTER
+Dez classes comuns: Batedor (verde), Lanceiro (rosa), Bastião (âmbar), Prisma (ciano), Olho Solar (amarelo), Tecelão (violeta), Semeador (laranja), Gêmeo (azul), Espectro (branco-lilás), Enxame (carmim). Cada classe possui silhueta, arma, cor de projétil e áudio próprio. As formações misturam classes progressivamente.
+Chefes: Guardião Rubro (salvas de artilharia); Aranha (teias, ricochetes e minas); Hexa (grades e obturadores de laser); Leviatã (escoltas, flancos e bombas); Eclipse (espirais, cometas e pulsos). HP normal: 105, 155, 210, 275, 350, com multiplicadores de dificuldade.
+Supernova: cinco famílias de ataques em ordem embaralhada, mais raios e movimento rápido. Mantém posição, teclas/toque, tiros e avisos existentes; não reposiciona a nave nem pausa o jogo. Raios sinalizados, corredor de fuga nas grades e limites de 155 projéteis e oito avisos/feixes simultâneos.
+Na ADM, inimigos comuns continuam hitkill; chefes mantêm dano normal e a nave segue invulnerável.

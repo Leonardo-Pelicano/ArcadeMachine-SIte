@@ -90,7 +90,7 @@
   ];
   function fuelTierAt(height){return height>=28000?3:height>=12000?2:1;}
   function fuelGrade(item){const tier=Number.isInteger(item?.fuelTier)&&item.fuelTier>=1&&item.fuelTier<=3?item.fuelTier:fuelTierAt(Number(item?.y)||0);return fuelGrades[tier-1];}
-  const milestones = [
+  let milestones = [
     {height:3000,name:"ACIMA DAS NUVENS",reward:50},
     {height:7000,name:"LIMITE DA ATMOSFERA",reward:90},
     {height:12000,name:"ÓRBITA BAIXA",reward:130},
@@ -99,6 +99,7 @@
     {height:38000,name:"CORREDOR TK–87",reward:360},
     {height:48000,name:"ALTITUDE DE INTERCEPTAÇÃO",reward:500},
   ];
+ if(root.ReleaseEdition?.adm)milestones=milestones.map(m=>({...m,height:m.height/4}));
   function supplies(height) {
     const p=Math.max(0,Math.min(1,height/48000));
     return {chance:.84*Math.exp(-p*2.4),fuelWeight:.42*(1-p)+.10*p,repairWeight:.13*(1-p)+.05*p,spread:460+220*p};
@@ -293,8 +294,9 @@
       [0, -10, 23, 17],
     ],
   };
+  if(root.ReleaseEdition?.adm){for(const z of zones)z.from/=4;for(const c of contracts){if(c.kind==='height')c.target/=4;c.text=c.text.replace('48 km','12 km');}}
   root.SeleneData = {
-    target(f) { return {x: Math.sin(f.time * .09) * 210, y:49800, r:105}; },
+    target(f) { return {x: Math.sin(f.time * .09) * 210, y:root.ReleaseEdition?.adm?13800:49800, r:105}; },
     milestones, supplies, fuelGrades, fuelTierAt, fuelGrade, finaleDuration:42,
     upgrades,
     obstacleShapes,
@@ -306,7 +308,8 @@
     zone,
     distance,
     launchY: 42,
-    goal: 48000,
-    key: "arcade-selene-pelicano-v2",
+    presentation:!!root.ReleaseEdition?.adm,
+    goal: root.ReleaseEdition?.adm?12000:48000,
+    key: "arcade-selene-pelicano-v2"+(root.ReleaseEdition?.adm?"-adm-v30":""),
   };
 })(typeof window !== "undefined" ? window : globalThis);

@@ -105,7 +105,9 @@
     if(c.driftExitRemaining>0&&!neutral){c.driftExitArmed=1;c.driftExitRemaining=0;c.driftExitBias=0;}
     const recovering=c.driftExitRemaining>0&&neutral&&c.air<.05&&c.impact<=.02;
     const limit = 0.36 / (1 + c.speed * 0.055),
-      demand = steer * limit * (c.handbrake ? 1.15 : 1);
+      assist = r.input.mobileAssist && c.air<.05 && !c.handbrake && c.impact<.05 && !recovering
+        ? clamp((-Math.atan(wheelbase*curve)*.28-c.heading*.08-c.lane*.012)*(Math.abs(steer)>.1?.25:1),-.025,.025) : 0,
+      demand = steer * limit * (c.handbrake ? 1.15 : 1) + assist;
     c.wheelAngle +=
       (clamp(demand, -0.4, 0.4) - c.wheelAngle) *
       (1 - Math.exp(-dt * (c.handbrake ? 8 : 13)));

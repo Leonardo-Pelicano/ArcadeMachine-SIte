@@ -5,102 +5,8 @@
     P = root.DriftPhysics,
     T = root.THREE;
   const lerp = (a, b, t) => a + (b - a) * t;
-  function car2D(g, x, y, scale, color, angle = 0) {
-    g.save();
-    g.translate(x, y);
-    g.rotate(angle);
-    g.scale(scale, scale);
-    g.fillStyle = "#07162c77";
-    g.beginPath();
-    g.ellipse(2, 8, 28, 12, 0, 0, Math.PI * 2);
-    g.fill();
-    g.fillStyle = "#121a2c";
-    g.fillRect(-26, -28, 9, 20);
-    g.fillRect(17, -28, 9, 20);
-    g.fillRect(-26, 12, 9, 20);
-    g.fillRect(17, 12, 9, 20);
-    g.fillStyle = color;
-    g.beginPath();
-    g.moveTo(-20, 33);
-    g.lineTo(-23, -17);
-    g.lineTo(-15, -38);
-    g.lineTo(15, -38);
-    g.lineTo(23, -17);
-    g.lineTo(20, 33);
-    g.closePath();
-    g.fill();
-    g.fillStyle = "#183248";
-    g.beginPath();
-    g.moveTo(-16, -13);
-    g.lineTo(-11, -26);
-    g.lineTo(11, -26);
-    g.lineTo(16, -13);
-    g.closePath();
-    g.fill();
-    g.fillStyle = "#a6e7ed";
-    g.fillRect(-2, -36, 4, 64);
-    g.fillStyle = "#f28fb2";
-    g.fillRect(-18, 28, 10, 3);
-    g.fillRect(8, 28, 10, 3);
-    g.fillStyle = "#19314c";
-    g.fillRect(-26, 20, 52, 5);
-    g.restore();
-  }
-  function preview(g, w, h, t) {
-    g.save();
-    g.scale(w / 820, h / 420);
-    const sky = g.createLinearGradient(0, 0, 0, 420);
-    sky.addColorStop(0, "#313357");
-    sky.addColorStop(0.42, "#9a6981");
-    sky.addColorStop(1, "#223c51");
-    g.fillStyle = sky;
-    g.fillRect(0, 0, 820, 420);
-    g.fillStyle = "#f5bd9c";
-    g.beginPath();
-    g.arc(630, 87, 49, 0, Math.PI * 2);
-    g.fill();
-    g.fillStyle = "#2d3654";
-    for (let i = 0; i < 26; i++)
-      g.fillRect(i * 35, 139 - ((i * 17) % 64), 27, 65);
-    for (let i = 0; i < 70; i++) {
-      const z = i / 70,
-        q = (i + 1) / 70,
-        y = 140 + z * z * 280,
-        y2 = 140 + q * q * 280,
-        c = 410 + Math.sin(t * 0.18 + z * 2) * 80 * (1 - z),
-        c2 = 410 + Math.sin(t * 0.18 + q * 2) * 80 * (1 - q),
-        half = 18 + z * z * 350,
-        half2 = 18 + q * q * 350;
-      g.fillStyle = Math.floor(z * 30 + t * 5) % 2 ? "#344258" : "#303e55";
-      g.beginPath();
-      g.moveTo(c - half, y);
-      g.lineTo(c + half, y);
-      g.lineTo(c2 + half2, y2);
-      g.lineTo(c2 - half2, y2);
-      g.fill();
-      g.strokeStyle = "#b5e7db";
-      g.lineWidth = 1 + z * 3;
-      g.beginPath();
-      g.moveTo(c - half, y);
-      g.lineTo(c2 - half2, y2);
-      g.moveTo(c + half, y);
-      g.lineTo(c2 + half2, y2);
-      g.stroke();
-      if (i % 8 < 4) {
-        g.strokeStyle = "#d7cee58a";
-        for (const a of [-0.33, 0.33]) {
-          g.beginPath();
-          g.moveTo(c + half * a, y);
-          g.lineTo(c2 + half2 * a, y2);
-          g.stroke();
-        }
-      }
-    }
-    car2D(g, 355, 326, 0.83, "#84f2d2", Math.sin(t) * 0.015);
-    car2D(g, 525, 268, 0.55, "#ed94b2");
-    car2D(g, 330, 210, 0.35, "#bd9cf3");
-    g.restore();
-  }
+ function car2D(g,x,y,scale,color,angle=0,shape='gt'){window.SpaceArt.racer(g,x,y,scale,color,shape,angle,performance.now()/1000);}
+  function preview(g,w,h,t){window.ArcadeUniverse.paint(g,w,h,t,'race');g.save();const horizon=h*.42;for(let i=0;i<35;i++){const z=i/35,q=(i+1)/35,y=horizon+z*z*h*.58,y2=horizon+q*q*h*.58,half=8+z*z*w*.48,half2=8+q*q*w*.48,c=w*.5+Math.sin(t*.2+z)*w*.12,c2=w*.5+Math.sin(t*.2+q)*w*.12;g.fillStyle=i%2?'#2c1b44':'#211533';g.beginPath();g.moveTo(c-half,y);g.lineTo(c+half,y);g.lineTo(c2+half2,y2);g.lineTo(c2-half2,y2);g.fill();g.strokeStyle='#bd92f7';g.lineWidth=1;g.beginPath();g.moveTo(c-half,y);g.lineTo(c2-half2,y2);g.moveTo(c+half,y);g.lineTo(c2+half2,y2);g.stroke();}car2D(g,w*.47,h*.8,h/170,'#bba5ff',-.1,'prototype');car2D(g,w*.67,h*.6,h/260,'#96e8dc',.1,'sport');g.restore();}
   function material(color, extra = {}) {
     return new T.MeshStandardMaterial({
       color,
@@ -201,7 +107,7 @@
         const a = track.frame((i / 720) * track.length),
           b = track.frame(((i + 1) / 720) * track.length),
           bridge =
-            (track.theme || track.id) === "orbit" ||
+            (track.theme || track.id) === "space" ||
             ((track.theme || track.id) === "coast" && Math.max(a.y, b.y) > 5);
         const near = track.width + 2.2,
           far = bridge ? near : near + 14,
@@ -233,7 +139,7 @@
       group,
       skirt,
       material(
-        (track.theme || track.id) === "orbit" ? "#576181" : track.ground,
+        (track.theme || track.id) === "space" ? "#576181" : track.ground,
         {
           side: T.DoubleSide,
         },
@@ -396,13 +302,13 @@
     }
     initGarage() {
       this.garage = new T.Scene();
-      this.garage.background = new T.Color("#192c43");
-      this.garage.fog = new T.FogExp2("#192c43", 0.012);
+      this.garage.background = new T.Color("#100d24");
+      this.garage.fog = new T.FogExp2("#100d24", 0.012);
       this.lights(this.garage);
       const floor = mesh(
         this.garage,
         new T.PlaneGeometry(400, 400),
-        material("#243b51", { roughness: 0.5 }),
+        material("#1f1737", { roughness: 0.5 }),
         0,
         -0.12,
         0,
@@ -414,7 +320,7 @@
       mesh(
         this.garage,
         new T.CylinderGeometry(4.3, 4.7, 0.22, 64),
-        material("#354a63"),
+        material("#3a2855"),
         0,
         -0.05,
         0,
@@ -722,13 +628,13 @@
           .multiplyScalar(1 - airHeight * 0.08);
         body.rotation.z =
           c.steerVisual * 0.035 + Math.sin(time * 39) * (c.impact || 0) * 0.035;
-        body.position.y = Math.sin(time * 17 + i) * 0.018 * (c.speed / 50);
+        body.position.y = .35+Math.sin(time*3+i)*.08;
         wheels.forEach((w) => {
           w.wheel.rotation.x = -c.s * 2.3;
           if (w.front) w.wheel.rotation.y = -c.wheelAngle;
         });
-        flame.visible = c.boost > 0;
-        flame.scale.setScalar(0.8 + Math.sin(time * 38) * 0.2);
+        flame.visible = c.speed > 2;
+        for(const jet of flame.children)jet.scale.y=(c.boost>0?1.6:.7)+Math.sin(time*32)*.12;
         shield.visible = c.shield > 0;
         shield.rotation.y = time;
         const nearby =
@@ -917,8 +823,8 @@
       g.setTransform(1, 0, 0, 1, 0, 0);
       if (this.mode === "garage") {
         const grad = g.createLinearGradient(0, 0, 0, h);
-        grad.addColorStop(0, "#192c43");
-        grad.addColorStop(1, "#3e5f76");
+        grad.addColorStop(0, "#100d24");
+        grad.addColorStop(1, "#30234b");
         g.fillStyle = grad;
         g.fillRect(0, 0, w, h);
         g.strokeStyle = "#63829c55";
@@ -941,7 +847,7 @@
           h * 0.61,
           h / 180,
           D.cars[this.carIndex || 0].color,
-          -0.3 + Math.sin(time * 0.3) * 0.08,
+          -0.3 + Math.sin(time * 0.3) * 0.08,D.cars[this.carIndex||0].shape,
         );
         return;
       }
@@ -990,7 +896,7 @@
           b = segments[i + 1];
         if (a.ahead <= 1 || b.ahead <= 1) continue;
         g.fillStyle =
-          Math.floor((player.s + i * 2.8) / 8) % 2 ? track.road : "#3b445a";
+          Math.floor((player.s + i * 2.8) / 8) % 2 ? track.road : "#2c2042";
         g.beginPath();
         g.moveTo(a.x - a.width, a.y);
         g.lineTo(a.x + a.width, a.y);
@@ -1027,7 +933,7 @@
           p.y,
           p.scale * 0.054,
           c.color,
-          c.heading + c.slipAngle,
+          c.heading + c.slipAngle,c.car.shape,
         );
       }
       for (const b of race.boxes) {
@@ -1053,7 +959,7 @@
         h * 0.82,
         h / 550,
         player.color,
-        player.heading + player.slipAngle,
+        player.heading + player.slipAngle,player.car.shape,
       );
       if (player.shield > 0) {
         g.strokeStyle = "#a8ffdf";

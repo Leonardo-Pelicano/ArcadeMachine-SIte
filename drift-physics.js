@@ -485,7 +485,7 @@
           }
         }
         V.drift(this, c, dt);
-        let max = c.car.speed;
+        let max = c.car.speed;if(!c.id&&root.ReleaseEdition?.adm)max=Math.max(c.car.speed,...this.cars.filter(r=>r.id).map(r=>r.car.speed*factor*r.skill*1.055))*1.06;
         if (c.id) {
           const catchup = clamp((this.player.s - c.s) / 400, -0.055, 0.055);
           max *= factor * c.skill * (1 + catchup);

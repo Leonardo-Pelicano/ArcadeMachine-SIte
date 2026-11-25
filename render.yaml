@@ -1,7 +1,11 @@
-# Coloque este arquivo na raiz do repositorio, ao lado de index.html.
+# Envie TODO o conteúdo do ZIP para a raiz do repositório.
 services:
   - type: web
-    name: arcade-machine
+    name: arcademachine-space-edition
     runtime: static
-    buildCommand: 'echo "Arcade pronto: nenhum build necessario"'
+    buildCommand: node scripts/verify-site.mjs
     staticPublishPath: .
+    headers:
+      - path: /*
+        name: Cache-Control
+        value: public, max-age=0, must-revalidate

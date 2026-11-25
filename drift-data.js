@@ -489,6 +489,12 @@
       help: "Deixa uma armadilha de energia na sua linha.",
     },
   };
+  const shipNames=['ASTRA VX','MANTA S','ATLAS HEAVY','PULSE TRIO','NÉBULA HALO','APEX INTERCEPTOR'];
+ const roles=['Caça de asas varridas','Asa delta de alta precisão','Fragata de motores duplos','Tricápsula de resposta rápida','Anel gravitacional de drift','Interceptador de proa longa'];
+ cars.forEach((c,i)=>{c.name=shipNames[i];c.role=roles[i];c.about=['Equilibrada e previsível. Dois motores, asas varridas e cabine blindada.','Asa delta contínua com vetores laterais. Precisão nas curvas fechadas.','Dois cascos, dois reatores. Potência nas retas, massa nas colisões.','Três cápsulas ao redor do cockpit. Aceleração forte para recuperar posições.','Propulsão por anel: carregue energia nas curvas e transforme drift em impulso.','Proa longa, canards dianteiros e quatro estabilizadores. A linha mais precisa.'][i];});
+ const circuitNames=['DOCAS DE SELENE','CIDADE ORBITAL','CINTURÃO DE CRISTAL','DUNAS DE ARES','ANÉIS DE TITÃ','HORIZONTE NEGRO','HÉLICE 87','BORDA DO QUASAR'];
+ const accents=['#9dc6ff','#d29cff','#8affeb','#ffb093','#e6baff','#ac9cff','#8ad9ff','#ff92d8'];
+ tracks.forEach((t,i)=>{t.name=circuitNames[i];t.short=circuitNames[i].split(' ').at(-1);t.subtitle=['O primeiro grid fora da Terra.','Luzes entre as estrelas.','Gelo e curvas em suspensão.','Cânions sob uma lua vermelha.','Uma volta entre anéis gigantes.','A gravidade não espera.','Cotovelos em uma estação em hélice.','A fronteira mais técnica do campeonato.'][i];t.description=t.subtitle+' Pista magnética, sete rivais e três voltas.';t.type='CIRCUITO ESPACIAL';t.theme='space';t.spaceIndex=i;t.sky='#070716';t.fog='#141026';t.ground='#211735';t.road=i%2?'#292039':'#201a38';t.edge='#493563';t.accent=accents[i];t.sun=accents[i];});
   root.DriftData = {
     cars,
     tracks,

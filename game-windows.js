@@ -19,7 +19,7 @@
     const previous=owner;owner=null;
     if(previous){previous.classList.remove('game-expanded');const c=previous.querySelector('canvas');c.style.removeProperty('width');c.style.removeProperty('height');}
     if(previous&&native()===previous){try{await(document.exitFullscreen?.()||document.webkitExitFullscreen?.());}catch(e){}}
-    lastExit=performance.now();sync();window.dispatchEvent(new Event('resize'));
+    try{screen.orientation?.unlock?.()}catch(e){}lastExit=performance.now();sync();window.dispatchEvent(new Event('resize'));
   }
   async function toggle(id){
     const m=document.getElementById(id);if(!m||m.style.display==='none'||busy)return;
@@ -27,7 +27,7 @@
     if(owner)await exit();owner=m;busy=true;
     try{const request=m.requestFullscreen||m.webkitRequestFullscreen;if(!request)throw Error('fallback');await request.call(m);}
     catch(e){if(owner===m)m.classList.add('game-expanded');}
-    finally{busy=false;if(m.style.display==='none')await exit();else sync();}
+    finally{try{if(native())await screen.orientation?.lock?.('landscape')}catch(e){}busy=false;if(m.style.display==='none')await exit();else sync();}
   }
   for(const id of ids){
     const m=document.getElementById(id),bar=m.querySelector('.drift-top-actions')||m.querySelector('.game-toolbar');

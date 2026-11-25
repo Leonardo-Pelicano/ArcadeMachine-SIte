@@ -4,7 +4,7 @@
 'use strict';
 const A=root.SeleneArt,P=root.SeleneParts,clamp=(v,a=0,b=1)=>Math.max(a,Math.min(b,v)),ease=t=>{t=clamp(t);return t*t*(3-2*t)},mix=(a,b,t)=>a+(b-a)*t;
 const shots=[
- {start:0,end:5.5,key:'orbit',title:'01 / A ÚLTIMA SUBIDA',speaker:'CONTROLE P–87',line:'48 quilômetros. Vetor de interceptação confirmado.'},
+ {start:0,end:5.5,key:'orbit',title:'01 / A ÚLTIMA SUBIDA',speaker:'CONTROLE P–87',line:(root.SeleneData.goal/1000)+' quilômetros. Vetor de interceptação confirmado.'},
  {start:5.5,end:12,key:'lab',title:'02 / O ÚLTIMO SINAL',speaker:'DR. PELICANO',line:'Estou vendo você. A Terra inteira está aqui embaixo.'},
  {start:12,end:19,key:'ground',title:'03 / OLHOS NO CÉU',speaker:'DR. PELICANO',line:'Só mais um pouco… não desista agora.'},
  {start:19,end:25,key:'burn',title:'04 / TUDO O QUE RESTA',speaker:'P–87',line:'Auxiliar no limite. Trajetória final.'},

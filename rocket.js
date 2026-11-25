@@ -790,11 +790,11 @@
     $("#seleneRouteValue").textContent = alt(Math.max(0, f.y - D.launchY));
     $("#seleneZone").textContent = D.zone(f.y).short;
     const pay = P.earnings(profile, f);
-    $("#seleneFlightCash").textContent = "COLETA $" + fmt(f.cash);
+    $("#seleneFlightCash").textContent = "RENDA $" + fmt(pay.total);
     $("#seleneIncomeTotal").textContent = "RENDA PREVISTA $" + fmt(pay.total);
     $("#seleneIncomeBreakdown").textContent = "VOO $" + fmt(pay.flight) + " · CONQUISTAS $" + fmt(pay.contracts);
     const target={y:D.goal},next=D.milestones.find(m=>m.height>f.maxY);
-    $("#seleneTargetDistance").textContent="OBJETIVO: 48 KM · FALTAM "+alt(Math.max(0,D.goal-f.y));
+    $("#seleneTargetDistance").textContent="OBJETIVO: "+(D.goal/1000)+" KM · FALTAM "+alt(Math.max(0,D.goal-f.y));
     $("#seleneNextCheckpoint").textContent=next?(next.height/1000)+" KM · "+next.name:"OBJETIVO ALCANÇADO";
     $("#seleneCheckpointRemaining").textContent=next?"FALTAM "+alt(Math.max(0,next.height-f.y))+(profile.contracts.includes("route_"+next.height)?"":" · BÔNUS +$"+next.reward):"SEQUÊNCIA DE INTERCEPTAÇÃO";
     for(const tick of routeTrack.querySelectorAll("[data-height]"))tick.classList.toggle("reached",f.maxY>=+tick.dataset.height);

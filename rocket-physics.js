@@ -8,9 +8,9 @@
       schema: 2,
       routeRevision:21,
       day: 0,
-      money: 0,
+      money: D.presentation?50000:0,
       seed: 1987,
-      levels: Object.fromEntries(D.upgrades.map((u) => [u.id, 0])),
+      levels: Object.fromEntries(D.upgrades.map((u) => [u.id, D.presentation?4:0])),
       best: 0,
       flights: 0,
       totalCoins: 0,
@@ -22,7 +22,7 @@
       history: [],
       pending: null,
       introSeen: false,
-      owned: Object.fromEntries(D.upgrades.map((u) => [u.id, [0]])),
+      owned: Object.fromEntries(D.upgrades.map((u) => [u.id, D.presentation?[0,4]:[0]])),
       settings: { control: "mouse", voice: true, inputRevision: 14 },
       lastSettled: 0,
     };
@@ -201,6 +201,7 @@
       this.emit("finish", { win, reason });
     }
     damage(amount, contact = {}) {
+ if(D.presentation){this.damageFlash=.1;return {loss:0,absorbed:0};}
       if (this.invuln > 0 || this.ended || this.crashing)
         return { loss: 0, absorbed: 0 };
       const mult =
@@ -547,8 +548,8 @@
         this.fuel = Math.max(0, this.fuel - dt * this.stats.burn);
       }
       if (this.boostOn) {
-        force += this.stats.boostThrust;
-        this.aux = Math.max(0, this.aux - dt);
+        force += this.stats.boostThrust*(D.presentation?5:1);
+        this.aux = Math.max(0, this.aux - dt*(D.presentation ? .18 : 1));
         this.boostTime += dt;
       }
       this.vx +=
@@ -566,7 +567,7 @@
         dt;
       this.vx = C(this.vx, -195, 195);
       this.gateBoost = Math.max(0, this.gateBoost - dt);
-      const speedCeiling=this.stats.maxSpeed+105*Math.min(1,this.gateBoost);
+      const speedCeiling=this.stats.maxSpeed+(D.presentation&&this.boostOn?350:0)+105*Math.min(1,this.gateBoost);
       this.vy=C(this.vy,-300,force>0?speedCeiling:Math.max(speedCeiling,this.vy));
       this.previousX = this.x; this.previousY = this.y;
       this.x += this.vx * dt;

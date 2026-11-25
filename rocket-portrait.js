@@ -3,7 +3,7 @@
   "use strict";
   let image = null,
     ready = false;
-  const source = "assets/pelicano-illustrated.png";
+  const source = "assets/pelicano-illustrated.webp";
   function setImage(value) {
     image = value;
     ready = !!value && !!(value.naturalWidth || value.width);
