@@ -11,3 +11,5 @@ V21: cinematográfica original TK–87 com sete planos em Canvas, cenários do o
 V24: pássaro, penas animadas, observatório orbital e nave-mãe desenhados originalmente em Canvas. A relíquia reutiliza a silhueta azul da nave do Arcade Zone, primeiro jogo deste mesmo projeto. Nenhuma imagem ou áudio externo novo foi utilizado.
 
 V30: gabinete galáctico gerado por IA segundo a referência de divulgação fornecida pelo autor; modelos de seis naves, estações e circuitos espaciais construídos em geometria Three.js; ícone e cartão social renderizados para esta edição. Sprite Astra, variantes de alienígenas e cinco chefes, satélites e arte dos jogos são código gráfico original.
+
+V34: novo ícone de aplicativo gerado com IA a partir do gabinete original desta edição: composição quadrada com máquina em três quartos e nebulosa roxa. Derivações técnicas 180/192/512 e maskable para instalação.
