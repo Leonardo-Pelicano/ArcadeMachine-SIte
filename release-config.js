@@ -1,4 +1,4 @@
-window.ReleaseEdition=Object.freeze({version:35,adm:document.documentElement.dataset.edition==='adm'});
+window.ReleaseEdition=Object.freeze({version:36,adm:document.documentElement.dataset.edition==='adm'});
 window.LaunchCampaign={shooter:[
 {name:'01 · PRIMEIRO CONTATO',pattern:'grid',kind:'scout',count:10,mix:["scout", "scout", "striker"]},{name:'02 · ASAS DO VAZIO',pattern:'v',kind:'striker',count:13,mix:["striker", "scout", "prism"]},{name:'03 · GUARDIÃO RUBRO',boss:1},
 {name:'04 · CINTURÃO DE ÓRION',pattern:'ring',kind:'armor',count:14,mix:["armor", "prism", "bomber"]},{name:'05 · CORRENTES DE ÍONS',pattern:'sweep',kind:'scout',count:14,mix:["weaver", "scout", "splitter"]},{name:'06 · A ARANHA DE ÍONS',boss:2},

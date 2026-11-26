@@ -13,3 +13,5 @@ V24: pássaro, penas animadas, observatório orbital e nave-mãe desenhados orig
 V30: gabinete galáctico gerado por IA segundo a referência de divulgação fornecida pelo autor; modelos de seis naves, estações e circuitos espaciais construídos em geometria Three.js; ícone e cartão social renderizados para esta edição. Sprite Astra, variantes de alienígenas e cinco chefes, satélites e arte dos jogos são código gráfico original.
 
 V34: novo ícone de aplicativo gerado com IA a partir do gabinete original desta edição: composição quadrada com máquina em três quartos e nebulosa roxa. Derivações técnicas 180/192/512 e maskable para instalação.
+
+V36: ícone fornecido pelo autor do projeto: https://chatgpt.com/s/m_6b0812fa79ec8191b31ef760ae187fd9 . Arte original preservada, exportada em tamanhos de instalação e favicon.

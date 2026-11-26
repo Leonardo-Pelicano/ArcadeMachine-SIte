@@ -47,3 +47,5 @@ No celular, a reprodução precisa de um toque por política do navegador. O bot
 Ícone redesenhado como máquina de arcade roxa galáctica; Apple touch icon 180, ícones 192/512 e imagem maskable separada. Nomes de arquivo versionados para atualização do cache. Atalhos já instalados pelo iOS podem conservar a imagem antiga e precisar ser adicionados novamente.
 
 V35 — Fases normais de Arcade Zone com menos tiros simultâneos, intervalos entre salvas e minas mais leves no fácil/normal. Chefes preservados.
+
+V36 — Ícone de instalação e navegador substituído pela arte fornecida pelo autor em 26/11/2026.
