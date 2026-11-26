@@ -429,7 +429,9 @@ function updateArcade(dt, now) {
       if (!e.alive || (e.boss && now < e.morphUntil)) continue;
       if (intersects({ x: shot.x, y: shot.y, w: 6, h: 20 }, e)) {
         shot.spent = true;
-        e.hp -= window.ReleaseEdition.adm&&!e.boss?e.hp:(shot.dmg||1);
+        e.hp -= window.ReleaseEdition.adm
+          ? (e.boss ? (shot.dmg || 1) * 4 : e.hp)
+          : (shot.dmg || 1);
         e.hitUntil = now + 140;
         window.GameFX.particles(
           arcadeParticles,

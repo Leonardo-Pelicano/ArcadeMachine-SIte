@@ -1,5 +1,5 @@
 {
-  "version": "36",
+  "version": "37",
   "files": {
     "app.js": "02785e9dae53a4a2dd55f475d154d4b08aab2fc662598688c524363f90a03eeb",
     "assets/arcade-galaxy.webp": "0b09fa878c02b1a8c9d4d4a0b9828241289a509522b6e5cba8fec5fdfa4ef655",
@@ -69,8 +69,8 @@
     "drift.js": "835da43f20ef5ed57f1aa1f1feaee1bd1ce52cabcfe2378171045bb3968e1c13",
     "game-windows.js": "85278b152e6e7638cb6261ffbbbf84ca267340a30407e7e16cc60a432b21fdc1",
     "gameplay-fx.js": "82e7bddc3f162f82cb1bf62b18e4157899e9d58839acc51823ca14f79886f74c",
-    "games.js": "6fa6e9d9ab877cf60af8cf896834d5d2fc44cae3c82a6a41efdb9210fd262cad",
-    "index.html": "984aa3c82aa23e2b99b0b0c4076eec7ec4f01770559978a65b9a42c2aa15148a",
+    "games.js": "09da0d00589e1862c66f870a1ce564194b4608fa362cbcc0d387442519e365a5",
+    "index.html": "0194776ae2617a8e8d2411dfa17cee183fc4e488e7a8c23afb024d7b8f09488e",
     "launch-ui.js": "3f4b4586da7d415c2ea46f50fe5009e9bb32310ad6ca7e810789bede443ed6cf",
     "launch.css": "c352502e5d1764b8c8a2d85ad922f8ca8bf983883aadcf3d033a100cdc84ac56",
     "manifest.webmanifest": "7c51e94663c199f4ce1fb2dd6e3d8a469016cafdeee61061fd745cc84c5eec89",
@@ -78,7 +78,7 @@
     "presentation.js": "cc710bb256c61b4833cc06c937a4528c8caf531c02f884e3621c43725d9102ad",
     "previews.js": "648b21ebaf29d7c215570cb70b7dd2633390c859d0ea1c07b59c7c2affd6a24e",
     "prism.js": "f56cf47213a31765eb30b7c4bd40fabc17663ccaaafc54b0f89f1191fad326f8",
-    "release-config.js": "9e7c21132e0848378b4241a71942e94cedbd57b3e59ed2648360764a66de3424",
+    "release-config.js": "fc35cde351cd7e7bdb1ca107d8727a9f0ebed2776b0d843598d73595c038e92c",
     "rocket-art.js": "50f45d8d29ff70be8d8fb328e7495a8f7950a11c20cfae0c8271c591bb34ccec",
     "rocket-data.js": "57fcf5d512e36bff71b5df4a281f177a76135dc3465a93dfaa6d7aada2e17777",
     "rocket-finale.js": "e3ed652cd3a6f381b55dfb932ce1fa2e4eea2b7084c7ee1296a6c85fa34986e7",
@@ -94,7 +94,7 @@
     "space.js": "ec10b9e68200e0ccbf4b3b43a9f2b448ab68945860552363bf1e813d48c42be2",
     "startup.js": "f1bbb3d7e02ee8c1cbf724a4f7acdef5a8cf931cee81c19242bce2904a732963",
     "styles.css": "e700aa3ec924e2b007f4edb26971413c661c1e0e02c73a52056e4c84fae4de03",
-    "sw.js": "ec6c7f22b769ee03a2e38e7ff84acd7a51d01ec8393d2a47b42d059b7d270e14",
+    "sw.js": "be411b889ad8dad514639100529a2aace095ab00c03d11e4eb6213c3be1c043c",
     "touch-controls.js": "2509f4684d09dac70312c7193ae88472b78c674337ef6617140e3231f1ad4e87",
     "universe.js": "7d3375229c821fb3e367a1d3e67a0d153bd00c9096e176ef954203f905122088",
     "vendor/three.classic.js": "5716cd5e5c2577895a8f41753fc59dcd70c4d117061564ad9cdb96012874566f"

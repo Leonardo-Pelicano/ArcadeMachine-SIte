@@ -49,3 +49,5 @@ No celular, a reprodução precisa de um toque por política do navegador. O bot
 V35 — Fases normais de Arcade Zone com menos tiros simultâneos, intervalos entre salvas e minas mais leves no fácil/normal. Chefes preservados.
 
 V36 — Ícone de instalação e navegador substituído pela arte fornecida pelo autor em 26/11/2026.
+
+V37 — No modo ADM, disparos causam 4x o dano contra chefes. Edição pública sem alteração no dano.
